@@ -1,15 +1,18 @@
 // =====================================================
-// FLIPBOOK MEDIA PEMBELAJARAN INTERAKTIF
-// MEDIA DAN JARINGAN TELEKOMUNIKASI
+// NETBOOK - MEDIA DAN JARINGAN TELEKOMUNIKASI
 // KELOMPOK 3 - 2026
 // =====================================================
 
-// MASUKKAN LINK QUIZIZZ ASLI DI SINI
-const quizizzURL = "MASUKKAN_LINK_QUIZIZZ_DI_SINI";
+// GANTI DENGAN LINK EVALUASI WAYGROUND KELOMPOK
+const waygroundURL = "https://wayground.com/join?gc=63289187";
 
-const TOTAL_PAGES = 10;
+const TOTAL_PAGES = 22;
+const ANIMATION_DURATION = 850;
 
-// Elemen HTML
+// =====================================================
+// ELEMEN HTML
+// =====================================================
+
 const leftContent = document.getElementById("leftContent");
 const rightContent = document.getElementById("rightContent");
 
@@ -26,29 +29,28 @@ const totalPageText = document.getElementById("totalPage");
 const progressBar = document.getElementById("progressBar");
 const pageLabel = document.getElementById("pageLabel");
 
-const book = document.getElementById("book");
-
-totalPageText.textContent = TOTAL_PAGES;
+const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 // =====================================================
 // STATUS FLIPBOOK
 // =====================================================
 
+// Mobile: satu halaman ditampilkan
 let isMobile = window.matchMedia("(max-width: 600px)").matches;
-
-// Mobile: halaman aktif 1-10
 let mobilePage = 1;
 
-// Desktop: halaman kiri dan kanan.
-// 0 berarti halaman kosong sebelum cover.
+// Desktop: dua halaman ditampilkan sekaligus.
+// 0 adalah halaman kosong sebelum sampul.
 let spreadStart = 0;
 
 let isAnimating = false;
 
-const ANIMATION_DURATION = 850;
+const LAST_SPREAD_START = Math.ceil((TOTAL_PAGES - 1) / 2) * 2;
+
+totalPageText.textContent = TOTAL_PAGES;
 
 // =====================================================
-// KOMPONEN NOMOR HALAMAN
+// KOMPONEN HALAMAN
 // =====================================================
 
 function pageFooter(number) {
@@ -60,10 +62,6 @@ function pageFooter(number) {
     `;
 }
 
-// =====================================================
-// TEMPLATE HALAMAN MATERI
-// =====================================================
-
 function normalPage(number, title, kicker, content) {
     return `
         <div class="page-kicker">${kicker}</div>
@@ -73,8 +71,72 @@ function normalPage(number, title, kicker, content) {
     `;
 }
 
+function infoBox(title, content) {
+    return `
+        <div class="info-box">
+            <strong>${title}</strong>
+            ${content}
+        </div>
+    `;
+}
+
+function contentList(items) {
+    return `
+        <ul class="content-list">
+            ${items.map((item, index) => `
+                <li>
+                    <span class="check">${index + 1}</span>
+                    <span>${item}</span>
+                </li>
+            `).join("")}
+        </ul>
+    `;
+}
+
+function card(title, description, symbol = "") {
+    return `
+        <div class="mini-card">
+            ${symbol ? `<div class="symbol">${symbol}</div>` : ""}
+            <h4>${title}</h4>
+            <p>${description}</p>
+        </div>
+    `;
+}
+
+function cardGroup(items) {
+    return `
+        <div class="cards">
+            ${items.map(item =>
+                card(item.title, item.description, item.symbol || "")
+            ).join("")}
+        </div>
+    `;
+}
+
+function diagramNode(symbol, label) {
+    return `
+        <div class="diagram-node">
+            <div class="diagram-icon">${symbol}</div>
+            <small>${label}</small>
+        </div>
+    `;
+}
+
+function simpleDiagram(items) {
+    return `
+        <div class="diagram">
+            ${items.map((item, index) => `
+                ${diagramNode(item.symbol, item.label)}
+                ${index < items.length - 1
+                    ? `<div class="diagram-arrow">→</div>`
+                    : ""}
+            `).join("")}
+        </div>
+    `;
+}
+
 // =====================================================
-// HALAMAN 1 - COVER
+// HALAMAN 1 - SAMPUL
 // =====================================================
 
 function coverPage() {
@@ -102,13 +164,11 @@ function coverPage() {
                 <svg viewBox="0 0 300 160"
                      xmlns="http://www.w3.org/2000/svg"
                      fill="none">
-
                     <g stroke="#20d6d2" stroke-width="2">
                         <path d="M150 80 L65 35 L235 35 L150 130"/>
                         <path d="M65 35 L65 125 L235 35"/>
                         <path d="M235 35 L235 125 L65 125"/>
                     </g>
-
                     <g fill="#20d6d2">
                         <circle cx="150" cy="80" r="15"/>
                         <circle cx="65" cy="35" r="10"/>
@@ -117,16 +177,13 @@ function coverPage() {
                         <circle cx="235" cy="125" r="10"/>
                         <circle cx="150" cy="130" r="8"/>
                     </g>
-
                     <g fill="#081b2b" stroke="#20d6d2" stroke-width="2">
                         <rect x="132" y="65" width="36" height="28" rx="5"/>
                     </g>
-
                     <g stroke="#20d6d2" stroke-width="2">
                         <path d="M142 100 H158"/>
                         <path d="M150 93 V100"/>
                     </g>
-
                 </svg>
             </div>
 
@@ -136,7 +193,7 @@ function coverPage() {
                     FASE E
                 </div>
                 <div>
-                    <strong>ELEmen</strong><br>
+                    <strong>ELEMEN</strong><br>
                     MEDIA DAN JARINGAN
                 </div>
             </div>
@@ -157,575 +214,843 @@ function page2() {
         "01 / LEARNING OBJECTIVES",
         `
         <p class="page-description">
-            Setelah mempelajari materi ini, siswa diharapkan
-            mampu memahami berbagai media transmisi jaringan
-            dan penggunaannya.
+            Setelah mempelajari materi ini, peserta didik diharapkan
+            mampu memahami berbagai media transmisi dan penerapannya
+            dalam membangun jaringan komputer.
         </p>
 
-        <div class="content-list">
+        ${contentList([
+            "Menjelaskan pengertian dan fungsi media transmisi jaringan.",
+            "Mengidentifikasi jenis media transmisi kabel dan nirkabel.",
+            "Menjelaskan karakteristik twisted pair, koaksial, dan fiber optik.",
+            "Memahami cara kerja dasar media transmisi nirkabel.",
+            "Membandingkan kelebihan dan kekurangan setiap media transmisi.",
+            "Menentukan media transmisi sesuai kebutuhan jaringan."
+        ])}
 
-            <li>
-                <span class="check">01</span>
-                <span>Menjelaskan pengertian dan fungsi media transmisi dalam jaringan komputer.</span>
-            </li>
-
-            <li>
-                <span class="check">02</span>
-                <span>Mengidentifikasi jenis media transmisi kabel dan nirkabel.</span>
-            </li>
-
-            <li>
-                <span class="check">03</span>
-                <span>Membedakan karakteristik twisted pair, koaksial, dan fiber optik.</span>
-            </li>
-
-            <li>
-                <span class="check">04</span>
-                <span>Menganalisis kelebihan dan kekurangan media kabel dan nirkabel.</span>
-            </li>
-
-            <li>
-                <span class="check">05</span>
-                <span>Memilih media transmisi sesuai kebutuhan jaringan sederhana.</span>
-            </li>
-
-        </div>
-
-        <div class="info-box">
-            <strong>CAPAIAN PEMBELAJARAN</strong>
-            Menerapkan berbagai media dalam membangun jaringan
-            pada teknik jaringan komputer dan telekomunikasi.
-        </div>
+        ${infoBox(
+            "CAPAIAN PEMBELAJARAN",
+            "Menerapkan berbagai media dalam membangun jaringan pada teknik jaringan komputer dan telekomunikasi."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 3 - PENGENALAN MEDIA JARINGAN
+// HALAMAN 3 - PENGERTIAN MEDIA TRANSMISI
 // =====================================================
 
 function page3() {
     return normalPage(
         3,
-        "Pengenalan Media Jaringan",
-        "02 / NETWORK TRANSMISSION",
+        "Pengertian Media Transmisi",
+        "02 / PENGENALAN MEDIA JARINGAN",
         `
         <p class="page-description">
-            Media transmisi adalah jalur yang digunakan
-            untuk mengirimkan data dari satu perangkat
-            ke perangkat lainnya dalam jaringan komputer.
+            Media transmisi adalah jalur atau perantara yang digunakan
+            untuk mengirimkan data dari satu perangkat ke perangkat
+            lainnya dalam jaringan komputer.
         </p>
 
-        <div class="section-label">BAGAIMANA DATA DIKIRIM?</div>
+        ${simpleDiagram([
+            { symbol: "💻", label: "Pengirim" },
+            { symbol: "〰️", label: "Media Transmisi" },
+            { symbol: "🖥️", label: "Penerima" }
+        ])}
 
-        <div class="diagram">
+        <h3 class="section-label">PROSES PENGIRIMAN DATA</h3>
 
-            <div class="diagram-node">
-                <div class="diagram-icon">💻</div>
-                <small>Pengirim</small>
-            </div>
+        ${contentList([
+            "Perangkat pengirim menghasilkan data atau informasi.",
+            "Data diubah menjadi sinyal yang dapat dikirim melalui media transmisi.",
+            "Media transmisi membawa sinyal menuju perangkat tujuan.",
+            "Perangkat penerima menerima dan mengolah data tersebut."
+        ])}
 
-            <div class="diagram-arrow">→</div>
-
-            <div class="diagram-node">
-                <div class="diagram-icon">〰️</div>
-                <small>Media</small>
-            </div>
-
-            <div class="diagram-arrow">→</div>
-
-            <div class="diagram-node">
-                <div class="diagram-icon">🖥️</div>
-                <small>Penerima</small>
-            </div>
-
-        </div>
-
-        <h3 class="section-label">FUNGSI MEDIA TRANSMISI</h3>
-
-        <ul class="content-list">
-            <li>
-                <span class="check">✓</span>
-                <span>Menjadi jalur pengiriman data antarperangkat.</span>
-            </li>
-
-            <li>
-                <span class="check">✓</span>
-                <span>Menghubungkan komputer dalam suatu jaringan.</span>
-            </li>
-
-            <li>
-                <span class="check">✓</span>
-                <span>Membantu proses komunikasi dan pertukaran informasi.</span>
-            </li>
-        </ul>
-
-        <div class="info-box">
-            <strong>CONTOH SEHARI-HARI</strong>
-            Ketika komputer mengakses internet melalui Wi-Fi,
-            data dikirim menggunakan gelombang radio.
-            Sementara koneksi LAN menggunakan kabel jaringan.
-        </div>
-
-        <p class="page-description" style="margin-top:9px">
-            Secara umum, media transmisi dibagi menjadi dua,
-            yaitu media kabel (wired) dan media nirkabel
-            (wireless).
-        </p>
+        ${infoBox(
+            "CONTOH SEDERHANA",
+            "Saat komputer mengirim file melalui kabel LAN, data melewati kabel jaringan sebelum diterima komputer tujuan."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 4 - TWISTED PAIR DAN KOAKSIAL
+// HALAMAN 4 - FUNGSI MEDIA TRANSMISI
 // =====================================================
 
 function page4() {
     return normalPage(
         4,
-        "Media Kabel: Twisted Pair dan Koaksial",
-        "03 / WIRED TRANSMISSION",
+        "Fungsi Media Transmisi",
+        "02 / PENGENALAN MEDIA JARINGAN",
         `
         <p class="page-description">
-            Media kabel mengirimkan data melalui penghantar
-            fisik yang menghubungkan perangkat jaringan.
+            Media transmisi berperan penting dalam proses komunikasi
+            karena menjadi penghubung antara perangkat yang saling
+            bertukar informasi.
         </p>
 
-        <div class="cable-visual">
+        ${cardGroup([
+            {
+                title: "Pengiriman Data",
+                symbol: "📤",
+                description: "Menjadi jalur untuk membawa data dari perangkat pengirim menuju penerima."
+            },
+            {
+                title: "Penghubung",
+                symbol: "🔗",
+                description: "Menghubungkan dua perangkat atau lebih agar dapat berkomunikasi."
+            },
+            {
+                title: "Pertukaran Informasi",
+                symbol: "🔄",
+                description: "Mendukung proses berbagi file, pesan, dan informasi melalui jaringan."
+            },
+            {
+                title: "Komunikasi Jaringan",
+                symbol: "🌐",
+                description: "Membantu perangkat mengakses layanan dan sumber daya jaringan."
+            }
+        ])}
 
-            <div class="cable-line">
-                <span>UTP / STP</span>
-                <div class="wire"></div>
-            </div>
-
-            <div class="cable-line">
-                <span>Koaksial</span>
-                <div class="wire coax"></div>
-            </div>
-
-        </div>
-
-        <h3 class="section-label">1. TWISTED PAIR</h3>
-
-        <p class="page-description">
-            Kabel twisted pair terdiri dari pasangan kawat
-            tembaga yang dipilin untuk membantu mengurangi
-            gangguan sinyal.
-        </p>
-
-        <div class="cards">
-
-            <div class="mini-card">
-                <div class="symbol">🔌</div>
-                <h4>UTP</h4>
-                <p>
-                    Tidak memiliki pelindung tambahan.
-                    Umum digunakan pada jaringan LAN.
-                </p>
-            </div>
-
-            <div class="mini-card">
-                <div class="symbol">🛡️</div>
-                <h4>STP</h4>
-                <p>
-                    Memiliki lapisan pelindung untuk
-                    membantu mengurangi interferensi.
-                </p>
-            </div>
-
-        </div>
-
-        <div class="info-box">
-            <strong>KONEKTOR</strong>
-            Twisted pair umumnya menggunakan konektor RJ-45
-            pada jaringan Ethernet.
-        </div>
-
-        <h3 class="section-label" style="margin-top:10px">
-            2. KABEL KOAKSIAL
-        </h3>
-
-        <p class="page-description">
-            Kabel koaksial memiliki konduktor inti,
-            isolator, pelindung logam, dan lapisan luar.
-            Digunakan antara lain pada televisi kabel
-            dan sistem komunikasi tertentu.
-        </p>
-
-        <div class="info-box">
-            <strong>KONEKTOR</strong>
-            Contoh konektor yang digunakan adalah BNC.
-        </div>
+        ${infoBox(
+            "HAL YANG PERLU DIPERHATIKAN",
+            "Pemilihan media transmisi dapat memengaruhi kecepatan, jangkauan, kestabilan, dan biaya pembangunan jaringan."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 5 - FIBER OPTIK
+// HALAMAN 5 - JENIS MEDIA TRANSMISI
 // =====================================================
 
 function page5() {
     return normalPage(
         5,
-        "Media Kabel: Fiber Optik",
-        "04 / OPTICAL FIBER",
+        "Jenis Media Transmisi",
+        "02 / PENGENALAN MEDIA JARINGAN",
         `
         <p class="page-description">
-            Fiber optik adalah media transmisi yang
-            menggunakan cahaya untuk membawa informasi
-            melalui serat kaca atau plastik khusus.
+            Berdasarkan bentuk jalur pengirimannya, media transmisi
+            jaringan komputer secara umum dibagi menjadi dua jenis.
         </p>
 
-        <div class="cable-visual">
+        ${cardGroup([
+            {
+                title: "Wired (Kabel)",
+                symbol: "🔌",
+                description: "Menggunakan kabel fisik sebagai jalur pengiriman data, misalnya twisted pair, koaksial, dan fiber optik."
+            },
+            {
+                title: "Wireless (Nirkabel)",
+                symbol: "📶",
+                description: "Mengirimkan data tanpa kabel fisik dengan memanfaatkan gelombang elektromagnetik."
+            }
+        ])}
 
-            <div class="cable-line">
-                <span>Struktur</span>
-                <div class="wire fiber"></div>
-            </div>
+        ${simpleDiagram([
+            { symbol: "🌐", label: "Media Jaringan" },
+            { symbol: "🔀", label: "Dua Jenis" },
+            { symbol: "🔌", label: "Kabel / Nirkabel" }
+        ])}
 
-            <div class="diagram">
-                <div class="diagram-node">
-                    <div class="diagram-icon">💡</div>
-                    <small>Sumber cahaya</small>
-                </div>
-
-                <div class="diagram-arrow">→</div>
-
-                <div class="diagram-node">
-                    <div class="diagram-icon">✨</div>
-                    <small>Serat optik</small>
-                </div>
-
-                <div class="diagram-arrow">→</div>
-
-                <div class="diagram-node">
-                    <div class="diagram-icon">📡</div>
-                    <small>Penerima</small>
-                </div>
-            </div>
-
-        </div>
-
-        <h3 class="section-label">STRUKTUR DASAR</h3>
-
-        <ul class="content-list">
-
-            <li>
-                <span class="check">1</span>
-                <span><b>Core:</b> bagian inti tempat cahaya merambat.</span>
-            </li>
-
-            <li>
-                <span class="check">2</span>
-                <span><b>Cladding:</b> lapisan yang membantu menjaga cahaya tetap berada dalam inti.</span>
-            </li>
-
-            <li>
-                <span class="check">3</span>
-                <span><b>Coating:</b> lapisan pelindung serat.</span>
-            </li>
-
-        </ul>
-
-        <div class="cards">
-
-            <div class="mini-card">
-                <h4>KELEBIHAN</h4>
-                <p>
-                    Kecepatan dan kapasitas tinggi,
-                    dapat menjangkau jarak jauh,
-                    serta tahan terhadap interferensi elektromagnetik.
-                </p>
-            </div>
-
-            <div class="mini-card">
-                <h4>KEKURANGAN</h4>
-                <p>
-                    Biaya perangkat dan instalasi
-                    relatif lebih tinggi serta
-                    membutuhkan penanganan khusus.
-                </p>
-            </div>
-
-        </div>
-
-        <div class="info-box">
-            <strong>CONTOH PENERAPAN</strong>
-            Digunakan pada jaringan backbone,
-            jaringan antargedung, dan layanan internet
-            berbasis fiber optik.
-        </div>
+        ${infoBox(
+            "KESIMPULAN",
+            "Kedua jenis media memiliki karakteristik yang berbeda. Pemilihannya harus disesuaikan dengan kebutuhan dan kondisi jaringan."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 6 - MEDIA NIRKABEL
+// HALAMAN 6 - PENGERTIAN TWISTED PAIR
 // =====================================================
 
 function page6() {
     return normalPage(
         6,
-        "Media Transmisi Nirkabel",
-        "05 / WIRELESS TRANSMISSION",
+        "Kabel Twisted Pair",
+        "03 / MEDIA TRANSMISI KABEL",
         `
         <p class="page-description">
-            Media nirkabel adalah media transmisi yang
-            mengirimkan data tanpa menggunakan kabel fisik.
-            Pengiriman data memanfaatkan gelombang
-            elektromagnetik.
+            Twisted pair merupakan kabel jaringan yang terdiri dari
+            pasangan kawat tembaga yang dipilin satu sama lain.
+            Pilinan tersebut membantu mengurangi gangguan sinyal.
         </p>
 
-        <div class="cards">
-
-            <div class="mini-card">
-                <div class="symbol">📶</div>
-                <h4>RADIO / WI-FI</h4>
-                <p>
-                    Menggunakan gelombang radio untuk
-                    menghubungkan perangkat secara nirkabel.
-                    Contohnya jaringan Wi-Fi.
-                </p>
+        <div class="cable-visual">
+            <div class="cable-line">
+                <span>UTP / STP</span>
+                <div class="wire"></div>
             </div>
-
-            <div class="mini-card">
-                <div class="symbol">📡</div>
-                <h4>MICROWAVE</h4>
-                <p>
-                    Menggunakan gelombang mikro.
-                    Umumnya digunakan untuk komunikasi
-                    antartitik dengan jalur yang sesuai.
-                </p>
-            </div>
-
-            <div class="mini-card">
-                <div class="symbol">🔴</div>
-                <h4>INFRAMERAH</h4>
-                <p>
-                    Menggunakan radiasi inframerah.
-                    Umumnya digunakan pada komunikasi
-                    jarak dekat.
-                </p>
-            </div>
-
-            <div class="mini-card">
-                <div class="symbol">📱</div>
-                <h4>PERANGKAT</h4>
-                <p>
-                    Contoh perangkat penerima dan pengirim
-                    adalah smartphone, laptop, dan access point.
-                </p>
-            </div>
-
         </div>
 
-        <h3 class="section-label" style="margin-top:12px">
-            CARA KERJA SEDERHANA
-        </h3>
+        <h3 class="section-label">KARAKTERISTIK</h3>
 
-        <div class="diagram">
+        ${contentList([
+            "Menggunakan penghantar berupa kawat tembaga.",
+            "Terdiri dari beberapa pasang kabel yang saling dipilin.",
+            "Umumnya digunakan untuk membangun jaringan LAN.",
+            "Dapat menggunakan konektor RJ-45 pada jaringan Ethernet."
+        ])}
 
-            <div class="diagram-node">
-                <div class="diagram-icon">💻</div>
-                <small>Pengirim</small>
-            </div>
-
-            <div class="diagram-arrow">〰</div>
-
-            <div class="diagram-node">
-                <div class="diagram-icon">📶</div>
-                <small>Gelombang</small>
-            </div>
-
-            <div class="diagram-arrow">〰</div>
-
-            <div class="diagram-node">
-                <div class="diagram-icon">📱</div>
-                <small>Penerima</small>
-            </div>
-
-        </div>
-
-        <div class="info-box">
-            <strong>KEUNGGULAN</strong>
-            Fleksibel, mendukung mobilitas, dan tidak
-            memerlukan pemasangan kabel ke setiap perangkat.
-        </div>
-
-        <p class="page-description" style="margin-top:8px">
-            Kualitas koneksi nirkabel dapat dipengaruhi
-            jarak, penghalang, interferensi, dan kondisi
-            lingkungan.
-        </p>
+        ${infoBox(
+            "PENGGUNAAN",
+            "Kabel twisted pair banyak ditemukan pada jaringan komputer di laboratorium, sekolah, kantor, dan rumah."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 7 - PERBANDINGAN MEDIA
+// HALAMAN 7 - JENIS TWISTED PAIR
 // =====================================================
 
 function page7() {
     return normalPage(
         7,
-        "Perbandingan Media Kabel dan Nirkabel",
-        "06 / MEDIA COMPARISON",
+        "Jenis Kabel Twisted Pair",
+        "03 / MEDIA TRANSMISI KABEL",
         `
         <p class="page-description">
-            Setiap media memiliki karakteristik yang berbeda.
-            Pemilihannya harus disesuaikan dengan kebutuhan
-            jaringan.
+            Berdasarkan pelindungnya, kabel twisted pair yang umum
+            dikenal terdiri dari UTP dan STP.
         </p>
 
-        <table class="compare-table">
+        ${cardGroup([
+            {
+                title: "UTP",
+                symbol: "🔌",
+                description: "Unshielded Twisted Pair tidak memiliki pelindung tambahan berupa lapisan logam. Kabel ini banyak digunakan karena pemasangannya relatif mudah."
+            },
+            {
+                title: "STP",
+                symbol: "🛡️",
+                description: "Shielded Twisted Pair memiliki pelindung tambahan untuk membantu mengurangi gangguan elektromagnetik dari lingkungan."
+            }
+        ])}
 
-            <thead>
-                <tr>
-                    <th>ASPEK</th>
-                    <th>KABEL</th>
-                    <th>NIRKABEL</th>
-                </tr>
-            </thead>
+        <h3 class="section-label">PERBEDAAN UTAMA</h3>
 
-            <tbody>
-                <tr>
-                    <td>Kecepatan</td>
-                    <td>Umumnya stabil</td>
-                    <td>Bervariasi</td>
-                </tr>
-
-                <tr>
-                    <td>Jangkauan</td>
-                    <td>Tergantung jenis kabel</td>
-                    <td>Tergantung sinyal</td>
-                </tr>
-
-                <tr>
-                    <td>Biaya</td>
-                    <td>Instalasi kabel</td>
-                    <td>Perangkat nirkabel</td>
-                </tr>
-
-                <tr>
-                    <td>Pemasangan</td>
-                    <td>Perlu jalur kabel</td>
-                    <td>Lebih fleksibel</td>
-                </tr>
-
-                <tr>
-                    <td>Keamanan</td>
-                    <td>Akses fisik perlu dijaga</td>
-                    <td>Perlu enkripsi</td>
-                </tr>
-            </tbody>
-
-        </table>
-
-        <div class="info-box">
-            <strong>HAL YANG PERLU DIINGAT</strong>
-            Media kabel umumnya memberikan koneksi yang
-            lebih konsisten. Media nirkabel memberikan
-            fleksibilitas dan mobilitas lebih tinggi.
-        </div>
-
-        <p class="page-description" style="margin-top:10px">
-            Tidak ada satu media yang selalu paling baik.
-            Pilihan bergantung pada kebutuhan, kondisi
-            lingkungan, anggaran, dan tujuan jaringan.
-        </p>
+        ${contentList([
+            "UTP memiliki struktur lebih sederhana dan umumnya lebih ekonomis.",
+            "STP memiliki lapisan pelindung tambahan.",
+            "STP dapat digunakan pada lingkungan yang memiliki potensi gangguan elektromagnetik lebih tinggi.",
+            "Pemilihan kabel perlu mempertimbangkan lingkungan pemasangan dan kebutuhan jaringan."
+        ])}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 8 - PENERAPAN MEDIA
+// HALAMAN 8 - KABEL KOAKSIAL
 // =====================================================
 
 function page8() {
     return normalPage(
         8,
-        "Penerapan Media dalam Jaringan",
-        "07 / REAL WORLD APPLICATION",
+        "Kabel Koaksial",
+        "03 / MEDIA TRANSMISI KABEL",
         `
         <p class="page-description">
-            Pemilihan media transmisi harus memperhatikan
-            kebutuhan pengguna, jarak, dan kondisi lokasi.
+            Kabel koaksial adalah kabel yang memiliki konduktor inti
+            di bagian tengah, lapisan isolator, pelindung logam,
+            dan lapisan luar.
         </p>
 
-        <div class="case-item">
-            <h4>01. LABORATORIUM KOMPUTER SEKOLAH</h4>
-            <p>
-                <b class="recommendation">Rekomendasi: Kabel UTP.</b>
-                <br>
-                Setiap komputer dapat dihubungkan ke switch
-                menggunakan kabel UTP. Pilihan ini sesuai
-                untuk koneksi lokal yang stabil dan mudah
-                dikelola.
-            </p>
+        <div class="cable-visual">
+            <div class="cable-line">
+                <span>Koaksial</span>
+                <div class="wire coax"></div>
+            </div>
         </div>
 
-        <div class="case-item">
-            <h4>02. JARINGAN ANTARGEDUNG</h4>
-            <p>
-                <b class="recommendation">Rekomendasi: Fiber optik.</b>
-                <br>
-                Fiber optik cocok dipertimbangkan untuk
-                menghubungkan gedung yang berjauhan karena
-                mendukung kapasitas tinggi dan memiliki
-                ketahanan terhadap interferensi listrik.
-            </p>
-        </div>
+        <h3 class="section-label">BAGIAN KABEL KOAKSIAL</h3>
 
-        <div class="case-item">
-            <h4>03. AREA PUBLIK</h4>
-            <p>
-                <b class="recommendation">Rekomendasi: Wi-Fi.</b>
-                <br>
-                Access point dapat menyediakan akses
-                jaringan bagi banyak pengguna tanpa harus
-                menghubungkan kabel langsung ke setiap
-                perangkat.
-            </p>
-        </div>
+        ${contentList([
+            "<b>Konduktor inti:</b> bagian yang membawa sinyal.",
+            "<b>Isolator:</b> memisahkan konduktor inti dari pelindung.",
+            "<b>Pelindung logam:</b> membantu mengurangi gangguan dari luar.",
+            "<b>Jaket luar:</b> melindungi bagian dalam kabel."
+        ])}
 
-        <div class="info-box">
-            <strong>KESIMPULAN KASUS</strong>
-            Media transmisi harus dipilih berdasarkan
-            kebutuhan jaringan, bukan hanya berdasarkan
-            kecepatan atau harga.
-        </div>
+        ${infoBox(
+            "CONTOH PENGGUNAAN",
+            "Kabel koaksial digunakan pada televisi kabel, antena, dan beberapa sistem komunikasi."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 9 - RINGKASAN
+// HALAMAN 9 - PENGERTIAN FIBER OPTIK
 // =====================================================
 
 function page9() {
     return normalPage(
         9,
-        "Ringkasan Materi",
-        "08 / LEARNING SUMMARY",
+        "Pengertian Fiber Optik",
+        "04 / MEDIA TRANSMISI FIBER OPTIK",
         `
         <p class="page-description">
-            Berikut rangkuman materi yang sudah dipelajari
-            dari awal hingga akhir.
+            Fiber optik merupakan media transmisi yang menggunakan
+            cahaya untuk membawa informasi melalui serat kaca atau
+            plastik khusus yang sangat halus.
+        </p>
+
+        <div class="cable-visual">
+            <div class="cable-line">
+                <span>Fiber Optik</span>
+                <div class="wire fiber"></div>
+            </div>
+        </div>
+
+        ${simpleDiagram([
+            { symbol: "💡", label: "Sumber Cahaya" },
+            { symbol: "✨", label: "Serat Optik" },
+            { symbol: "📡", label: "Penerima" }
+        ])}
+
+        <h3 class="section-label">CARA KERJA SINGKAT</h3>
+
+        ${contentList([
+            "Perangkat pengirim mengubah informasi menjadi sinyal cahaya.",
+            "Cahaya merambat melalui bagian inti serat optik.",
+            "Sinyal cahaya diterima oleh perangkat penerima.",
+            "Perangkat penerima mengubah sinyal menjadi informasi kembali."
+        ])}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 10 - STRUKTUR FIBER OPTIK
+// =====================================================
+
+function page10() {
+    return normalPage(
+        10,
+        "Struktur Fiber Optik",
+        "04 / MEDIA TRANSMISI FIBER OPTIK",
+        `
+        <p class="page-description">
+            Kabel fiber optik memiliki beberapa lapisan yang
+            bekerja bersama untuk menghantarkan dan melindungi
+            cahaya selama proses transmisi.
+        </p>
+
+        ${cardGroup([
+            {
+                title: "Core",
+                symbol: "🔵",
+                description: "Bagian inti serat optik yang menjadi jalur utama perambatan cahaya."
+            },
+            {
+                title: "Cladding",
+                symbol: "⭕",
+                description: "Lapisan yang mengelilingi core dan membantu menjaga cahaya tetap merambat di dalam inti."
+            },
+            {
+                title: "Coating",
+                symbol: "🛡️",
+                description: "Lapisan pelindung yang membantu menjaga serat dari kerusakan."
+            },
+            {
+                title: "Jaket Kabel",
+                symbol: "🔒",
+                description: "Lapisan terluar yang melindungi bagian kabel dari kondisi lingkungan."
+            }
+        ])}
+
+        ${infoBox(
+            "CATATAN",
+            "Core dan cladding merupakan bagian penting dalam proses perambatan cahaya pada serat optik."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 11 - KELEBIHAN DAN KEKURANGAN FIBER OPTIK
+// =====================================================
+
+function page11() {
+    return normalPage(
+        11,
+        "Kelebihan dan Kekurangan Fiber Optik",
+        "04 / MEDIA TRANSMISI FIBER OPTIK",
+        `
+        <p class="page-description">
+            Fiber optik banyak digunakan pada jaringan modern,
+            terutama ketika dibutuhkan kapasitas dan jangkauan
+            transmisi yang tinggi.
+        </p>
+
+        ${cardGroup([
+            {
+                title: "Kelebihan",
+                symbol: "✓",
+                description: "Memiliki kapasitas transmisi tinggi, dapat menjangkau jarak jauh, dan tidak mudah terpengaruh gangguan elektromagnetik."
+            },
+            {
+                title: "Kekurangan",
+                symbol: "!",
+                description: "Biaya perangkat dan instalasi relatif lebih tinggi serta membutuhkan alat dan keterampilan khusus."
+            }
+        ])}
+
+        <h3 class="section-label">CONTOH PENERAPAN</h3>
+
+        ${contentList([
+            "Jaringan internet berbasis fiber optik.",
+            "Jaringan backbone antarwilayah.",
+            "Penghubung jaringan antargedung.",
+            "Infrastruktur jaringan perusahaan dan pusat data."
+        ])}
+
+        ${infoBox(
+            "KESIMPULAN",
+            "Fiber optik cocok digunakan ketika jaringan membutuhkan kapasitas besar dan jangkauan yang luas."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 12 - PENGERTIAN MEDIA NIRKABEL
+// =====================================================
+
+function page12() {
+    return normalPage(
+        12,
+        "Media Transmisi Nirkabel",
+        "05 / MEDIA TRANSMISI NIRKABEL",
+        `
+        <p class="page-description">
+            Media nirkabel atau wireless merupakan media transmisi
+            yang mengirimkan data tanpa menggunakan kabel fisik.
+            Proses komunikasi memanfaatkan gelombang elektromagnetik.
+        </p>
+
+        ${simpleDiagram([
+            { symbol: "💻", label: "Perangkat" },
+            { symbol: "📶", label: "Gelombang" },
+            { symbol: "📱", label: "Penerima" }
+        ])}
+
+        <h3 class="section-label">KARAKTERISTIK</h3>
+
+        ${contentList([
+            "Tidak memerlukan kabel sebagai jalur langsung komunikasi.",
+            "Memanfaatkan gelombang elektromagnetik.",
+            "Memungkinkan perangkat terhubung secara lebih fleksibel.",
+            "Kualitas koneksi dapat dipengaruhi jarak dan kondisi lingkungan."
+        ])}
+
+        ${infoBox(
+            "CONTOH SEHARI-HARI",
+            "Koneksi Wi-Fi pada laptop dan smartphone merupakan contoh penggunaan media transmisi nirkabel."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 13 - JENIS MEDIA NIRKABEL
+// =====================================================
+
+function page13() {
+    return normalPage(
+        13,
+        "Jenis Media Nirkabel",
+        "05 / MEDIA TRANSMISI NIRKABEL",
+        `
+        <p class="page-description">
+            Media nirkabel menggunakan beberapa jenis gelombang
+            untuk mengirimkan informasi dari satu perangkat
+            ke perangkat lainnya.
+        </p>
+
+        ${cardGroup([
+            {
+                title: "Gelombang Radio",
+                symbol: "📻",
+                description: "Digunakan dalam komunikasi radio, Wi-Fi, dan berbagai sistem komunikasi nirkabel."
+            },
+            {
+                title: "Microwave",
+                symbol: "📡",
+                description: "Digunakan pada komunikasi titik ke titik dan beberapa sistem komunikasi jarak jauh."
+            },
+            {
+                title: "Infrared",
+                symbol: "🔴",
+                description: "Menggunakan cahaya inframerah dan umumnya digunakan untuk komunikasi jarak dekat."
+            },
+            {
+                title: "Satelit",
+                symbol: "🛰️",
+                description: "Membantu komunikasi pada wilayah yang luas melalui perangkat dan sistem satelit."
+            }
+        ])}
+
+        ${infoBox(
+            "PERLU DIINGAT",
+            "Setiap jenis media nirkabel memiliki karakteristik, jangkauan, dan kebutuhan perangkat yang berbeda."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 14 - WI-FI DAN PENERAPANNYA
+// =====================================================
+
+function page14() {
+    return normalPage(
+        14,
+        "Wi-Fi dalam Jaringan Komputer",
+        "05 / MEDIA TRANSMISI NIRKABEL",
+        `
+        <p class="page-description">
+            Wi-Fi merupakan teknologi jaringan nirkabel yang
+            memungkinkan perangkat bertukar data melalui
+            gelombang radio tanpa harus menggunakan kabel LAN.
+        </p>
+
+        ${simpleDiagram([
+            { symbol: "🌐", label: "Internet" },
+            { symbol: "📡", label: "Access Point" },
+            { symbol: "💻", label: "Pengguna" }
+        ])}
+
+        <h3 class="section-label">PERANGKAT YANG DIGUNAKAN</h3>
+
+        ${contentList([
+            "<b>Access Point:</b> menyediakan akses jaringan nirkabel.",
+            "<b>Wireless Router:</b> menghubungkan jaringan lokal dengan jaringan lain.",
+            "<b>Wireless Adapter:</b> memungkinkan perangkat terhubung ke jaringan Wi-Fi.",
+            "<b>Antena:</b> membantu memancarkan atau menerima sinyal radio."
+        ])}
+
+        ${infoBox(
+            "CONTOH PENERAPAN",
+            "Wi-Fi digunakan di rumah, sekolah, kampus, kantor, dan tempat umum untuk memberikan akses jaringan kepada banyak perangkat."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 15 - PERBANDINGAN MEDIA TRANSMISI
+// =====================================================
+
+function page15() {
+    return normalPage(
+        15,
+        "Perbandingan Media Transmisi",
+        "06 / ANALISIS MEDIA TRANSMISI",
+        `
+        <p class="page-description">
+            Setiap media transmisi memiliki karakteristik yang
+            berbeda. Perbandingan diperlukan agar pemilihan
+            media sesuai dengan kebutuhan jaringan.
+        </p>
+
+        <table class="compare-table">
+            <tr>
+                <th>Media</th>
+                <th>Jalur</th>
+                <th>Contoh</th>
+            </tr>
+            <tr>
+                <td>UTP</td>
+                <td>Kabel</td>
+                <td>LAN</td>
+            </tr>
+            <tr>
+                <td>Koaksial</td>
+                <td>Kabel</td>
+                <td>TV Kabel</td>
+            </tr>
+            <tr>
+                <td>Fiber Optik</td>
+                <td>Cahaya</td>
+                <td>Internet Fiber</td>
+            </tr>
+            <tr>
+                <td>Wi-Fi</td>
+                <td>Radio</td>
+                <td>Jaringan Nirkabel</td>
+            </tr>
+        </table>
+
+        ${infoBox(
+            "KESIMPULAN",
+            "Media kabel menggunakan jalur fisik, sedangkan media nirkabel menggunakan gelombang elektromagnetik untuk mengirimkan data."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 16 - KELEBIHAN DAN KEKURANGAN MEDIA
+// =====================================================
+
+function page16() {
+    return normalPage(
+        16,
+        "Kelebihan dan Kekurangan Media",
+        "06 / ANALISIS MEDIA TRANSMISI",
+        `
+        <p class="page-description">
+            Sebelum membangun jaringan, kita perlu mempertimbangkan
+            kelebihan dan kekurangan media yang akan digunakan.
+        </p>
+
+        ${cardGroup([
+            {
+                title: "Media Kabel",
+                symbol: "🔌",
+                description: "Koneksi dapat lebih stabil dan tidak bergantung pada jangkauan sinyal radio. Namun, pemasangan membutuhkan kabel fisik."
+            },
+            {
+                title: "Media Nirkabel",
+                symbol: "📶",
+                description: "Lebih fleksibel dan memudahkan perangkat berpindah tempat. Namun, kualitas koneksi dapat dipengaruhi jarak dan penghalang."
+            }
+        ])}
+
+        <h3 class="section-label">FAKTOR PEMILIHAN</h3>
+
+        ${contentList([
+            "Kebutuhan kecepatan dan kapasitas jaringan.",
+            "Luas area dan jarak antarperangkat.",
+            "Kondisi lingkungan pemasangan.",
+            "Biaya perangkat dan instalasi.",
+            "Kemudahan perawatan jaringan."
+        ])}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 17 - MEMILIH MEDIA TRANSMISI
+// =====================================================
+
+function page17() {
+    return normalPage(
+        17,
+        "Memilih Media yang Tepat",
+        "06 / ANALISIS MEDIA TRANSMISI",
+        `
+        <p class="page-description">
+            Pemilihan media transmisi sebaiknya dilakukan berdasarkan
+            kebutuhan jaringan, bukan hanya berdasarkan jenis kabel
+            atau teknologi yang paling baru.
+        </p>
+
+        <div class="case-item">
+            <h4>Jaringan Laboratorium Komputer</h4>
+            <p>
+                Membutuhkan koneksi antarkomputer yang stabil.
+                Kabel twisted pair dapat menjadi pilihan untuk
+                menghubungkan komputer ke switch.
+            </p>
+        </div>
+
+        <div class="case-item">
+            <h4>Jaringan Antargedung</h4>
+            <p>
+                Membutuhkan koneksi dengan jangkauan lebih jauh.
+                Fiber optik dapat dipertimbangkan karena memiliki
+                kapasitas transmisi tinggi.
+            </p>
+        </div>
+
+        <div class="case-item">
+            <h4>Akses Internet Pengguna</h4>
+            <p>
+                Membutuhkan fleksibilitas untuk banyak perangkat.
+                Wi-Fi dapat digunakan agar pengguna terhubung
+                tanpa kabel langsung ke router.
+            </p>
+        </div>
+
+        ${infoBox(
+            "INTI PEMILIHAN",
+            "Pertimbangkan kebutuhan, jarak, kondisi lokasi, biaya, dan kemudahan pemeliharaan."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 18 - PENERAPAN DI SEKOLAH
+// =====================================================
+
+function page18() {
+    return normalPage(
+        18,
+        "Penerapan di Lingkungan Sekolah",
+        "07 / PENERAPAN MEDIA JARINGAN",
+        `
+        <p class="page-description">
+            Media transmisi digunakan dalam berbagai fasilitas
+            sekolah untuk mendukung kegiatan belajar dan
+            administrasi.
+        </p>
+
+        ${cardGroup([
+            {
+                title: "Laboratorium Komputer",
+                symbol: "💻",
+                description: "Kabel UTP dapat menghubungkan komputer siswa dengan switch dalam jaringan lokal."
+            },
+            {
+                title: "Ruang Guru",
+                symbol: "🖥️",
+                description: "Jaringan kabel atau Wi-Fi dapat digunakan untuk mengakses sistem informasi sekolah."
+            },
+            {
+                title: "Perpustakaan",
+                symbol: "📚",
+                description: "Wi-Fi dapat mendukung akses katalog digital dan sumber belajar online."
+            },
+            {
+                title: "Antargedung",
+                symbol: "🏫",
+                description: "Fiber optik dapat digunakan sebagai penghubung jaringan antargedung."
+            }
+        ])}
+
+        ${infoBox(
+            "CONTOH",
+            "Sebuah sekolah dapat menggunakan fiber optik sebagai penghubung utama, kabel UTP untuk komputer laboratorium, dan Wi-Fi untuk akses siswa."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 19 - PENERAPAN DI RUMAH DAN KANTOR
+// =====================================================
+
+function page19() {
+    return normalPage(
+        19,
+        "Penerapan di Rumah dan Kantor",
+        "07 / PENERAPAN MEDIA JARINGAN",
+        `
+        <p class="page-description">
+            Penggunaan media transmisi juga dapat ditemukan
+            dalam aktivitas sehari-hari di rumah maupun
+            lingkungan kerja.
+        </p>
+
+        <div class="case-item">
+            <h4>Lingkungan Rumah</h4>
+            <p>
+                Wi-Fi digunakan untuk menghubungkan smartphone,
+                laptop, televisi pintar, dan perangkat lainnya.
+                Kabel LAN dapat digunakan untuk perangkat
+                yang membutuhkan koneksi kabel.
+            </p>
+        </div>
+
+        <div class="case-item">
+            <h4>Lingkungan Kantor</h4>
+            <p>
+                Kabel twisted pair dapat menghubungkan komputer
+                ke jaringan lokal, sedangkan Wi-Fi memberikan
+                akses bagi perangkat bergerak.
+            </p>
+        </div>
+
+        <div class="case-item">
+            <h4>Jaringan Perusahaan</h4>
+            <p>
+                Fiber optik dapat digunakan sebagai jalur
+                penghubung utama antarruang atau antargedung
+                yang membutuhkan kapasitas besar.
+            </p>
+        </div>
+
+        ${infoBox(
+            "KESIMPULAN",
+            "Satu lingkungan dapat menggunakan lebih dari satu jenis media transmisi sesuai fungsi dan kebutuhan perangkat."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 20 - STUDI KASUS SEDERHANA
+// =====================================================
+
+function page20() {
+    return normalPage(
+        20,
+        "Studi Kasus Pemilihan Media",
+        "07 / PENERAPAN MEDIA JARINGAN",
+        `
+        <p class="page-description">
+            Perhatikan contoh kasus berikut untuk memahami
+            bagaimana media transmisi dipilih berdasarkan
+            kebutuhan jaringan.
+        </p>
+
+        <div class="case-item">
+            <h4>Kasus: Laboratorium Komputer Sekolah</h4>
+            <p>
+                Sebuah laboratorium memiliki 30 komputer yang
+                perlu terhubung ke jaringan lokal untuk berbagi
+                akses internet dan sumber belajar.
+            </p>
+        </div>
+
+        <h3 class="section-label">ANALISIS KEBUTUHAN</h3>
+
+        ${contentList([
+            "Setiap komputer membutuhkan koneksi jaringan.",
+            "Koneksi diharapkan stabil selama kegiatan praktikum.",
+            "Komputer berada di dalam satu ruangan.",
+            "Pengelola membutuhkan instalasi yang mudah dirawat."
+        ])}
+
+        ${infoBox(
+            "REKOMENDASI",
+            "Kabel twisted pair dapat digunakan untuk menghubungkan komputer ke switch karena sesuai untuk jaringan LAN dalam satu ruangan."
+        )}
+        `
+    );
+}
+
+// =====================================================
+// HALAMAN 21 - RANGKUMAN
+// =====================================================
+
+function page21() {
+    return normalPage(
+        21,
+        "Rangkuman Materi",
+        "08 / RINGKASAN PEMBELAJARAN",
+        `
+        <p class="page-description">
+            Berikut rangkuman materi media dan jaringan
+            telekomunikasi yang telah dipelajari.
         </p>
 
         <div class="mindmap">
-
-            <div class="mind-center">
-                MEDIA TRANSMISI JARINGAN
-            </div>
+            <div class="mind-center">MEDIA TRANSMISI JARINGAN</div>
 
             <div class="mind-branches">
-
                 <div class="mind-branch">
                     <h4>MEDIA KABEL</h4>
                     <p>
                         Twisted Pair<br>
-                        UTP / STP<br>
                         Koaksial<br>
                         Fiber Optik
                     </p>
@@ -735,340 +1060,268 @@ function page9() {
                     <h4>MEDIA NIRKABEL</h4>
                     <p>
                         Gelombang Radio<br>
-                        Wi-Fi<br>
                         Microwave<br>
-                        Inframerah
+                        Infrared<br>
+                        Satelit
                     </p>
                 </div>
-
             </div>
-
         </div>
 
-        <div class="content-list">
+        ${contentList([
+            "Media transmisi menjadi jalur pengiriman data antarperangkat.",
+            "Media kabel menggunakan penghantar fisik.",
+            "Media nirkabel menggunakan gelombang elektromagnetik.",
+            "Setiap media memiliki kelebihan dan kekurangan.",
+            "Pemilihan media harus disesuaikan dengan kebutuhan jaringan."
+        ])}
 
-            <li>
-                <span class="check">1</span>
-                <span>Media transmisi merupakan jalur untuk mengirimkan data.</span>
-            </li>
-
-            <li>
-                <span class="check">2</span>
-                <span>Media kabel menggunakan penghantar fisik.</span>
-            </li>
-
-            <li>
-                <span class="check">3</span>
-                <span>Fiber optik mengirimkan informasi menggunakan cahaya.</span>
-            </li>
-
-            <li>
-                <span class="check">4</span>
-                <span>Media nirkabel menggunakan gelombang elektromagnetik.</span>
-            </li>
-
-            <li>
-                <span class="check">5</span>
-                <span>Pemilihan media harus sesuai dengan kebutuhan jaringan.</span>
-            </li>
-
-        </div>
-
-        <div class="info-box">
-            <strong>SIAP UNTUK EVALUASI?</strong>
-            Sekarang, uji pemahamanmu melalui latihan
-            Quizizz pada halaman berikutnya!
-        </div>
+        ${infoBox(
+            "PESAN PEMBELAJARAN",
+            "Memahami karakteristik media transmisi membantu kita merancang jaringan komputer yang sesuai dengan kebutuhan."
+        )}
         `
     );
 }
 
 // =====================================================
-// HALAMAN 10 - QUIZIZZ
+// HALAMAN 22 - EVALUASI WAYGROUND
 // =====================================================
 
-function page10() {
+function page22() {
     return `
         <div class="quiz-page">
+            <div class="quiz-label">09 / EVALUASI PEMBELAJARAN</div>
 
-            <div class="quiz-label">
-                09 / LEARNING EVALUATION
-            </div>
-
-            <div class="quiz-art">
-                📝
-            </div>
+            <div class="quiz-art">📝</div>
 
             <h2>
-                SEBERAPA JAUH KAMU
-                <span>MEMAHAMI MATERI INI?</span>
+                SAATNYA <span>MENGUJI</span><br>
+                PEMAHAMANMU!
             </h2>
 
             <p>
-                Selamat! Kamu sudah mempelajari berbagai
-                jenis media transmisi jaringan komputer.
-                Sekarang waktunya menguji pemahamanmu.
+                Kamu telah menyelesaikan materi Media dan Jaringan
+                Telekomunikasi. Sekarang, kerjakan latihan soal
+                untuk mengukur pemahamanmu.
             </p>
 
             <p>
-                Kerjakan latihan Quizizz untuk mengetahui
-                sejauh mana kamu memahami materi yang
-                telah dipelajari.
+                Bacalah setiap pertanyaan dengan teliti dan
+                pilih jawaban yang paling tepat.
             </p>
 
-            <a href="#" id="quizButton"
-               class="quiz-button"
-               target="_blank"
-               rel="noopener noreferrer">
-                ▶ MULAI LATIHAN QUIZIZZ
+            <a href="#" class="quiz-button" id="waygroundButton">
+                MULAI EVALUASI WAYGROUND →
             </a>
 
             <div class="quiz-note">
-                Latihan • Evaluasi • Ukur Pemahaman
+                Klik tombol di atas untuk membuka latihan evaluasi.
             </div>
 
-            <div style="margin-top:15px;font-size:8px;color:#20d6d2">
-                GOOD LUCK & KEEP LEARNING!
-            </div>
-
-            ${pageFooter(10)}
-
+            ${pageFooter(22)}
         </div>
     `;
 }
 
 // =====================================================
-// FUNGSI MENGHASILKAN HALAMAN
+// MENAMPILKAN HALAMAN
 // =====================================================
 
 function renderPage(number) {
+    const pageFunctions = {
+        1: coverPage,
+        2: page2,
+        3: page3,
+        4: page4,
+        5: page5,
+        6: page6,
+        7: page7,
+        8: page8,
+        9: page9,
+        10: page10,
+        11: page11,
+        12: page12,
+        13: page13,
+        14: page14,
+        15: page15,
+        16: page16,
+        17: page17,
+        18: page18,
+        19: page19,
+        20: page20,
+        21: page21,
+        22: page22
+    };
 
-    switch (number) {
-
-        case 0:
-            return `
-                <div class="page-inner"
-                     style="background:#e8e6dc">
-                </div>
-            `;
-
-        case 1:
-            return coverPage();
-
-        case 2:
-            return page2();
-
-        case 3:
-            return page3();
-
-        case 4:
-            return page4();
-
-        case 5:
-            return page5();
-
-        case 6:
-            return page6();
-
-        case 7:
-            return page7();
-
-        case 8:
-            return page8();
-
-        case 9:
-            return page9();
-
-        case 10:
-            return page10();
-
-        default:
-            return "";
+    if (number === 0 || number > TOTAL_PAGES) {
+        return "";
     }
+
+    return pageFunctions[number] ? pageFunctions[number]() : "";
 }
 
 // =====================================================
-// PENGATURAN TOMBOL QUIZIZZ
+// LINK WAYGROUND
 // =====================================================
 
-function setupQuizizz() {
+function setupWayground() {
+    const waygroundButton = document.getElementById("waygroundButton");
 
-    const quizButton = document.getElementById("quizButton");
+    if (!waygroundButton) return;
 
-    if (!quizButton) return;
+    const validLink =
+        waygroundURL !== "MASUKKAN_LINK_WAYGROUND_DI_SINI" &&
+        /^https?:\/\/(www\.)?(wayground\.com|quizizz\.com)\//i.test(waygroundURL);
 
-    const validURL =
-        quizizzURL !== "MASUKKAN_LINK_QUIZIZZ_DI_SINI" &&
-        /^https:\/\/(www\.)?quizizz\.com\//i.test(quizizzURL);
-
-    if (validURL) {
-
-        quizButton.href = quizizzURL;
-
+    if (validLink) {
+        waygroundButton.href = waygroundURL;
+        waygroundButton.target = "_blank";
+        waygroundButton.rel = "noopener noreferrer";
     } else {
+        waygroundButton.href = "#";
 
-        quizButton.href = "#";
-
-        quizButton.addEventListener("click", function(event) {
+        waygroundButton.onclick = function(event) {
             event.preventDefault();
-
             alert(
-                "Link Quizizz belum dimasukkan. " +
-                "Silakan masukkan link Quizizz asli " +
-                "pada variabel quizizzURL di script.js."
+                "Link Wayground belum diatur. Masukkan link evaluasi pada variabel waygroundURL di file script.js."
             );
-        });
+        };
     }
 }
 
 // =====================================================
-// MENGATUR TAMPILAN HALAMAN
+// HALAMAN AKTIF
+// =====================================================
+
+function getActivePage() {
+    if (isMobile) {
+        return mobilePage;
+    }
+
+    if (spreadStart === 0) {
+        return 1;
+    }
+
+    return Math.min(TOTAL_PAGES, spreadStart + 1);
+}
+
+// =====================================================
+// MEMPERBARUI TAMPILAN
 // =====================================================
 
 function updateDisplay() {
+    flipSheet.className = "flip-sheet";
 
     if (isMobile) {
-
         leftContent.innerHTML = "";
         rightContent.innerHTML = renderPage(mobilePage);
-
-        currentPageText.textContent = mobilePage;
-
-        progressBar.style.width =
-            (mobilePage / TOTAL_PAGES * 100) + "%";
-
-        pageLabel.textContent =
-            mobilePage === 1 ? "COVER" :
-            mobilePage === 10 ? "EVALUASI QUIZIZZ" :
-            "HALAMAN " + mobilePage;
-
     } else {
-
         const leftNumber = spreadStart;
         const rightNumber = spreadStart + 1;
 
         leftContent.innerHTML = renderPage(leftNumber);
         rightContent.innerHTML = renderPage(rightNumber);
-
-        // Halaman aktif yang ditampilkan
-        const activeNumber =
-            rightNumber <= TOTAL_PAGES ?
-            rightNumber : leftNumber;
-
-        currentPageText.textContent = activeNumber;
-
-        progressBar.style.width =
-            (activeNumber / TOTAL_PAGES * 100) + "%";
-
-        pageLabel.textContent =
-            spreadStart === 0 ? "COVER" :
-            activeNumber === 10 ? "EVALUASI QUIZIZZ" :
-            "HALAMAN " + activeNumber;
     }
 
-    prevBtn.disabled = isFirstPage();
+    const activePage = getActivePage();
+
+    currentPageText.textContent = String(activePage).padStart(2, "0");
+    totalPageText.textContent = String(TOTAL_PAGES);
+
+    progressBar.style.width =
+        `${(activePage / TOTAL_PAGES) * 100}%`;
+
+    pageLabel.textContent =
+        activePage === TOTAL_PAGES
+            ? "EVALUASI WAYGROUND"
+            : activePage === 1
+                ? "SAMPUL"
+                : "MEDIA DAN JARINGAN";
+
+    prevBtn.disabled =
+        isMobile ? mobilePage === 1 : spreadStart === 0;
+
     nextBtn.disabled = isLastPage();
 
-    setupQuizizz();
+    setupWayground();
 }
 
 // =====================================================
-// CEK HALAMAN PERTAMA DAN TERAKHIR
+// CEK HALAMAN TERAKHIR
 // =====================================================
-
-function isFirstPage() {
-
-    if (isMobile) {
-        return mobilePage === 1;
-    }
-
-    return spreadStart === 0;
-}
 
 function isLastPage() {
-
     if (isMobile) {
-        return mobilePage === TOTAL_PAGES;
+        return mobilePage >= TOTAL_PAGES;
     }
 
-    return spreadStart >= 10;
+    return spreadStart >= LAST_SPREAD_START;
 }
 
 // =====================================================
-// ANIMASI MEMBALIK HALAMAN
+// NAVIGASI HALAMAN
 // =====================================================
 
 function turnPage(direction) {
-
     if (isAnimating) return;
 
     if (direction === "next" && isLastPage()) return;
-    if (direction === "prev" && isFirstPage()) return;
+
+    if (
+        direction === "prev" &&
+        (isMobile ? mobilePage === 1 : spreadStart === 0)
+    ) {
+        return;
+    }
 
     isAnimating = true;
 
     if (isMobile) {
-
         const current = mobilePage;
+        const target = direction === "next"
+            ? current + 1
+            : current - 1;
+
+        flipFront.innerHTML = renderPage(current);
+        flipBack.innerHTML = renderPage(target);
+
+        flipSheet.className = "flip-sheet active";
 
         if (direction === "next") {
-
-            flipFront.innerHTML = renderPage(current);
-            flipBack.innerHTML = renderPage(current + 1);
-
-            flipSheet.className = "flip-sheet active turn-next";
-
+            flipSheet.classList.add("turn-next");
         } else {
-
-            flipFront.innerHTML = renderPage(current);
-            flipBack.innerHTML = renderPage(current - 1);
-
-            flipSheet.className = "flip-sheet active turn-prev";
+            flipSheet.classList.add("turn-prev");
         }
 
+        mobilePage = target;
+
     } else {
-
         if (direction === "next") {
-
             flipFront.innerHTML = renderPage(spreadStart + 1);
             flipBack.innerHTML = renderPage(spreadStart + 2);
 
             flipSheet.className = "flip-sheet active turn-next";
 
-        } else {
+            spreadStart = Math.min(
+                LAST_SPREAD_START,
+                spreadStart + 2
+            );
 
+        } else {
             flipFront.innerHTML = renderPage(spreadStart);
             flipBack.innerHTML = renderPage(spreadStart - 1);
 
             flipSheet.className = "flip-sheet active turn-prev";
+
+            spreadStart = Math.max(0, spreadStart - 2);
         }
     }
 
+    // Tampilan utama diperbarui setelah animasi selesai.
     setTimeout(() => {
-
-        if (isMobile) {
-
-            if (direction === "next") {
-                mobilePage++;
-            } else {
-                mobilePage--;
-            }
-
-        } else {
-
-            if (direction === "next") {
-                spreadStart += 2;
-            } else {
-                spreadStart -= 2;
-            }
-        }
-
-        flipSheet.className = "flip-sheet";
-
         updateDisplay();
-
         isAnimating = false;
-
     }, ANIMATION_DURATION);
 }
 
@@ -1085,117 +1338,84 @@ prevBtn.addEventListener("click", () => {
 });
 
 // =====================================================
-// KEMBALI KE COVER
+// KEMBALI KE SAMPUL
 // =====================================================
 
 coverBtn.addEventListener("click", () => {
-
     if (isAnimating) return;
 
-    if (isMobile) {
-
-        mobilePage = 1;
-
-    } else {
-
-        spreadStart = 0;
-    }
+    mobilePage = 1;
+    spreadStart = 0;
 
     updateDisplay();
-});
-
-// =====================================================
-// NAVIGASI KEYBOARD
-// =====================================================
-
-document.addEventListener("keydown", function(event) {
-
-    if (
-        event.target.tagName === "INPUT" ||
-        event.target.tagName === "TEXTAREA"
-    ) return;
-
-    if (event.key === "ArrowRight") {
-
-        event.preventDefault();
-        turnPage("next");
-
-    } else if (event.key === "ArrowLeft") {
-
-        event.preventDefault();
-        turnPage("prev");
-
-    }
 });
 
 // =====================================================
 // FULLSCREEN
 // =====================================================
 
-const fullscreenBtn =
-    document.getElementById("fullscreenBtn");
-
 fullscreenBtn.addEventListener("click", async () => {
-
     try {
-
         if (!document.fullscreenElement) {
-
             await document.documentElement.requestFullscreen();
-
         } else {
-
             await document.exitFullscreen();
-
         }
-
     } catch (error) {
-
         console.error("Fullscreen tidak tersedia:", error);
-
     }
-
 });
 
 // =====================================================
-// RESPONSIVE: DETEKSI UKURAN LAYAR
+// NAVIGASI KEYBOARD
+// =====================================================
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight") {
+        turnPage("next");
+    }
+
+    if (event.key === "ArrowLeft") {
+        turnPage("prev");
+    }
+});
+
+// =====================================================
+// RESPONSIVE: HP DAN LAPTOP
 // =====================================================
 
 const mobileQuery = window.matchMedia("(max-width: 600px)");
 
 function handleResponsive() {
-
     const newMode = mobileQuery.matches;
 
     if (newMode === isMobile) return;
 
-    isMobile = newMode;
-
-    // Menentukan halaman aktif saat berpindah mode
-    if (isMobile) {
-
-        // Mode HP: satu halaman
-        mobilePage = Math.min(
-            TOTAL_PAGES,
-            spreadStart + 1
-        );
-
-        if (mobilePage < 1) {
-            mobilePage = 1;
-        }
-
-    } else {
-
-        // Mode laptop/PC: dua halaman
-        // Menyesuaikan ke pasangan halaman terdekat
-        spreadStart = Math.floor(mobilePage / 2) * 2;
-
+    if (isAnimating) {
+        flipSheet.className = "flip-sheet";
+        isAnimating = false;
     }
 
-    // Menghapus animasi yang sedang aktif
-    flipSheet.className = "flip-sheet";
+    if (newMode) {
+        // Desktop ke HP.
+        // Tampilkan halaman kanan yang sebelumnya terlihat.
+        mobilePage = Math.min(
+            TOTAL_PAGES,
+            spreadStart === 0 ? 1 : spreadStart + 1
+        );
 
-    // Memperbarui tampilan flipbook
+    } else {
+        // HP ke desktop.
+        // Sesuaikan ke pasangan halaman terdekat.
+        spreadStart = Math.ceil((mobilePage - 1) / 2) * 2;
+
+        spreadStart = Math.min(
+            LAST_SPREAD_START,
+            spreadStart
+        );
+    }
+
+    isMobile = newMode;
     updateDisplay();
 }
 
@@ -1210,7 +1430,6 @@ if (mobileQuery.addEventListener) {
 // =====================================================
 
 function initializeFlipbook() {
-
     isMobile = mobileQuery.matches;
 
     mobilePage = 1;
@@ -1220,11 +1439,10 @@ function initializeFlipbook() {
 
     console.log("Flipbook berhasil diinisialisasi.");
     console.log("Jumlah halaman:", TOTAL_PAGES);
-    console.log("Mode tampilan:", isMobile ? "Single Page" : "Double Page");
+    console.log(
+        "Mode tampilan:",
+        isMobile ? "Single Page" : "Double Page"
+    );
 }
 
 initializeFlipbook();
-
-// =====================================================
-// SELESAI
-// =====================================================
