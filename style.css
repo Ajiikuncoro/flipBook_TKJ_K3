@@ -1134,3 +1134,66 @@ kbd {
     }
 }
 
+/* =====================================================
+   PENYESUAIAN KONTEN FLIPBOOK 22 HALAMAN
+   ===================================================== */
+
+/* Memungkinkan isi halaman digulir jika materi lebih panjang */
+.page-inner {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #138c89 #fffdf5;
+}
+
+/* Scrollbar pada browser berbasis WebKit */
+.page-inner::-webkit-scrollbar {
+    width: 4px;
+}
+
+.page-inner::-webkit-scrollbar-thumb {
+    background: #138c89;
+    border-radius: 10px;
+}
+
+/* Konten pada lembar animasi tetap tersusun vertikal */
+.flip-face {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+/* Nomor halaman tetap berada di bagian bawah konten */
+.page-number {
+    flex-shrink: 0;
+}
+
+/* Menjaga tombol evaluasi tetap terlihat */
+.quiz-button {
+    cursor: pointer;
+}
+
+/* Penyesuaian tabel agar tidak melewati batas halaman */
+.compare-table {
+    table-layout: fixed;
+    overflow-wrap: break-word;
+}
+
+/* Menjaga kartu tetap rapi pada layar kecil */
+@media (max-width: 600px) {
+    .page-inner {
+        padding: 6%;
+    }
+
+    .page-description {
+        font-size: 9px;
+    }
+
+    .mini-card p {
+        font-size: 8px;
+    }
+
+    .content-list li {
+        line-height: 1.45;
+    }
+}
