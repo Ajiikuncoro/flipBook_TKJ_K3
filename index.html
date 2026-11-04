@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#081b2b">
+    <title>Media dan Jaringan Telekomunikasi | Flipbook</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">N</div>
+            <div>
+                <strong>NET<span>BOOK</span></strong>
+                <small>Interactive Learning Media</small>
+            </div>
+        </div>
+
+        <div class="header-info">
+            <span class="status-dot"></span>
+            MEDIA PEMBELAJARAN DIGITAL
+        </div>
+
+        <button class="icon-button" id="fullscreenBtn"
+                title="Fullscreen" aria-label="Fullscreen">
+            ⛶
+        </button>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+        <div class="intro">
+            <div class="eyebrow">SMK/MAK • KELAS X • FASE E</div>
+            <h1>Media dan Jaringan <span>Telekomunikasi</span></h1>
+            <p>Jelajahi materi jaringan komputer melalui pengalaman membaca buku digital interaktif.</p>
+        </div>
+
+        <!-- BOOK -->
+        <section class="book-area">
+
+            <div class="book-scene" id="bookScene">
+
+                <div class="book" id="book">
+
+                    <!-- HALAMAN KIRI -->
+                    <div class="book-page left-page" id="leftPage">
+                        <div class="page-inner" id="leftContent"></div>
+                    </div>
+
+                    <!-- HALAMAN KANAN -->
+                    <div class="book-page right-page" id="rightPage">
+                        <div class="page-inner" id="rightContent"></div>
+                    </div>
+
+                    <!-- KERTAS ANIMASI -->
+                    <div class="flip-sheet" id="flipSheet">
+                        <div class="flip-face flip-front">
+                            <div class="page-inner" id="flipFront"></div>
+                        </div>
+                        <div class="flip-face flip-back">
+                            <div class="page-inner" id="flipBack"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- NAVIGASI -->
+            <div class="navigation">
+
+                <button class="nav-button" id="prevBtn" aria-label="Halaman sebelumnya">
+                    <span>←</span>
+                    <small>SEBELUMNYA</small>
+                </button>
+
+                <div class="page-indicator">
+                    <div class="page-count">
+                        <strong id="currentPage">1</strong>
+                        <span>/</span>
+                        <span id="totalPage">10</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <small id="pageLabel">COVER</small>
+                </div>
+
+                <button class="nav-button next-button" id="nextBtn" aria-label="Halaman selanjutnya">
+                    <small>SELANJUTNYA</small>
+                    <span>→</span>
+                </button>
+
+            </div>
+
+            <div class="bottom-tools">
+                <button id="coverBtn" class="tool-button">
+                    ↶ Kembali ke Cover
+                </button>
+
+                <div class="keyboard-hint">
+                    Gunakan tombol <kbd>←</kbd> dan <kbd>→</kbd> untuk membaca
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <span>NETBOOK © 2026</span>
+        <span>MEDIA PEMBELAJARAN INTERAKTIF</span>
+        <span>KELOMPOK 3</span>
+    </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
