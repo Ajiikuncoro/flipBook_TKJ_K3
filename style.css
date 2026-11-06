@@ -1855,6 +1855,11 @@ select.form-control {
     border: 1px solid rgba(32, 214, 210, 0.35);
 }
 
+.badge-tag.page-position-tag {
+    background: rgba(59, 130, 246, 0.12);
+    color: #93c5fd;
+}
+
 .badge-tag.tag-media {
     background: rgba(245, 158, 11, 0.15);
     color: #fbbf24;
@@ -1863,7 +1868,10 @@ select.form-control {
 .item-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
+    flex-wrap: wrap;
+    max-width: 48%;
     flex-shrink: 0;
 }
 
@@ -1882,6 +1890,18 @@ select.form-control {
 .item-btn:hover {
     background: rgba(255, 255, 255, 0.12);
     color: white;
+}
+
+.item-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.item-btn.item-btn-order {
+    min-width: 28px;
+    padding-right: 7px;
+    padding-left: 7px;
+    font-size: 13px;
 }
 
 .item-btn.btn-view {
@@ -2107,5 +2127,16 @@ select.form-control {
     .form-row-2,
     .type-selector-grid {
         grid-template-columns: 1fr;
+    }
+
+    .page-list-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .item-actions {
+        width: 100%;
+        max-width: 100%;
+        flex-wrap: wrap;
     }
 }

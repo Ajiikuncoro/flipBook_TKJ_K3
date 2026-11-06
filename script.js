@@ -1270,7 +1270,6 @@ function renderCustomPage(pageData, number) {
             `;
         }
     }
-
     // Poin-poin checklist
     if (pageData.bullets && pageData.bullets.length > 0) {
         contentHtml += `<ul class="content-list custom-content-list">`;
@@ -1339,6 +1338,18 @@ function getDefaultPagesMeta() {
     ];
 }
 
+function getCustomPageNumber(page) {
+    const pageNumber = Number(page.pageNumber);
+    if (Number.isInteger(pageNumber) && pageNumber >= 1) return pageNumber;
+
+    const legacyPlacement = Number(page.placement);
+    if (Number.isInteger(legacyPlacement) && legacyPlacement >= 1 && legacyPlacement <= 22) {
+        return legacyPlacement + 1;
+    }
+    if (page.placement === "end") return 23;
+    return 22;
+}
+
 // =====================================================
 // PENYIMPANAN MATERI GURU
 // =====================================================
@@ -1355,13 +1366,43 @@ function getCustomPagesFromStorage() {
 function saveCustomPagesToStorage(pages) {
     try {
         localStorage.setItem("flipbook_custom_pages", JSON.stringify(pages));
-    } catch (e) {}
+        return true;
+    } catch (e) {
+        console.error("Gagal menyimpan materi ke localStorage:", e);
+    }
+    return false;
+}
+
+function getHiddenDefaultPages() {
+    try {
+        const data = localStorage.getItem("flipbook_hidden_default_pages");
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error("Gagal membaca halaman kurikulum yang dihapus:", e);
+        return [];
+    }
+}
+
+function saveHiddenDefaultPages(pageIds) {
+    try {
+        localStorage.setItem("flipbook_hidden_default_pages", JSON.stringify(pageIds));
+        return true;
+    } catch (e) {
+        console.error("Gagal menyimpan halaman kurikulum yang dihapus:", e);
+        return false;
+    }
 }
 
 // Membangun masterPages (22 kurikulum + materi tambahan guru)
 async function rebuildMasterPages() {
-    const defaultPages = getDefaultPagesMeta();
     const customPages = getCustomPagesFromStorage();
+    const replacedDefaultIds = new Set(
+        customPages.filter(page => page.sourceDefaultId).map(page => page.sourceDefaultId)
+    );
+    const hiddenDefaultIds = new Set(getHiddenDefaultPages());
+    const defaultPages = getDefaultPagesMeta().filter(page =>
+        !replacedDefaultIds.has(page.id) && !hiddenDefaultIds.has(page.id)
+    );
 
     const customResolvedList = [];
     for (const cp of customPages) {
@@ -1394,7 +1435,7 @@ async function rebuildMasterPages() {
             mediaCaption: cp.mediaCaption || "",
             videoSource: cp.videoSource,
             videoUrl: cp.videoUrl,
-            placement: cp.placement || "before_quiz",
+            pageNumber: getCustomPageNumber(cp),
             resolvedMediaSrc: resolvedUrl,
             rawCustomData: cp,
             render: (num) => renderCustomPage(pageObj, num)
@@ -1402,15 +1443,19 @@ async function rebuildMasterPages() {
         customResolvedList.push(pageObj);
     }
 
-    // Susun secara otomatis:
-    // Halaman 1-21 -> Halaman Kustom (before_quiz) -> Halaman 22 (Wayground) -> Halaman Kustom (end)
-    const d1to21 = defaultPages.slice(0, 21);
-    const dWayground = defaultPages[21];
-
-    const customBeforeQuiz = customResolvedList.filter(p => p.placement !== "end");
-    const customAtEnd = customResolvedList.filter(p => p.placement === "end");
-
-    masterPages = [...d1to21, ...customBeforeQuiz, dWayground, ...customAtEnd];
+    masterPages = [...defaultPages];
+    const pagesByPosition = new Map();
+    customResolvedList.forEach(page => {
+        const pages = pagesByPosition.get(page.pageNumber) || [];
+        pages.push(page);
+        pagesByPosition.set(page.pageNumber, pages);
+    });
+    [...pagesByPosition.entries()]
+        .sort(([positionA], [positionB]) => positionA - positionB)
+        .forEach(([position, pages]) => {
+            const insertAt = Math.min(position - 1, masterPages.length);
+            masterPages.splice(insertAt, 0, ...pages);
+        });
 
     // Perbarui counter
     const total = masterPages.length;
@@ -1899,6 +1944,7 @@ panelTabs.forEach(btn => {
 // =====================================================
 
 let editingPageId = null;
+let editingDefaultPageId = null;
 let tempImageBlob = null;
 let tempVideoBlob = null;
 
@@ -2018,10 +2064,12 @@ if (resetFormBtn) resetFormBtn.addEventListener("click", clearMaterialForm);
 
 function clearMaterialForm() {
     editingPageId = null;
+    editingDefaultPageId = null;
     tempImageBlob = null;
     tempVideoBlob = null;
 
     document.getElementById("editModeBanner").style.display = "none";
+    setPageNumberInput(getTotalPages() + 1);
     document.getElementById("pageTitle").value = "";
     document.getElementById("pageKicker").value = "04 / MATERI TAMBAHAN";
     document.getElementById("pageDescription").value = "";
@@ -2031,6 +2079,7 @@ function clearMaterialForm() {
     document.getElementById("imageUrlInput").value = "";
     document.getElementById("youtubeUrlInput").value = "";
     document.getElementById("videoCaption").value = "";
+    document.getElementById("pageNumber").value = String(getTotalPages() + 1);
 
     if (imageFileInput) imageFileInput.value = "";
     if (videoFileInput) videoFileInput.value = "";
@@ -2050,6 +2099,28 @@ if (cancelEditBtn) cancelEditBtn.addEventListener("click", clearMaterialForm);
 // Simpan materi
 const saveMaterialBtn = document.getElementById("saveMaterialBtn");
 if (saveMaterialBtn) saveMaterialBtn.addEventListener("click", saveMaterial);
+
+const MAX_BOOK_PAGES = 100;
+
+function setPageNumberInput(pageNumber) {
+    const input = document.getElementById("pageNumber");
+    if (!input) return;
+    input.min = "1";
+    const maximum = Math.min(getTotalPages() + (editingPageId || editingDefaultPageId ? 0 : 1), MAX_BOOK_PAGES);
+    input.max = String(maximum);
+    input.value = String(Math.max(1, Math.min(pageNumber, maximum)));
+}
+
+setPageNumberInput(getTotalPages() + 1);
+
+function isValidHttpUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch (e) {
+        return false;
+    }
+}
 
 async function saveMaterial() {
     const title = document.getElementById("pageTitle").value.trim();
@@ -2071,11 +2142,28 @@ async function saveMaterial() {
     const bulletsRaw = document.getElementById("pageBullets").value.trim();
     const bullets = bulletsRaw ? bulletsRaw.split("\n").map(s => s.trim()).filter(Boolean) : [];
     const infoBox = document.getElementById("pageInfoBox").value.trim();
-    const placementVal = document.getElementById("pagePlacement").value || "before_quiz";
-
-    let mediaBlobId = null;
-    let imageUrl = "";
-    let videoUrl = "";
+    const pageNumber = Number(document.getElementById("pageNumber").value);
+    const totalPages = getTotalPages();
+    if (!editingPageId && !editingDefaultPageId && totalPages >= MAX_BOOK_PAGES) {
+        showToast(`Buku sudah mencapai batas maksimal ${MAX_BOOK_PAGES} halaman.`, "error");
+        return;
+    }
+    const maximumPageNumber = Math.min(totalPages + (editingPageId || editingDefaultPageId ? 0 : 1), MAX_BOOK_PAGES);
+    if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > maximumPageNumber) {
+        showToast(`Nomor halaman harus antara 1 dan ${maximumPageNumber}.`, "error");
+        document.getElementById("pageNumber").focus();
+        return;
+    }
+    const customPages = getCustomPagesFromStorage();
+    const existing = editingPageId ? customPages.find(p => p.id === editingPageId) : null;
+    if (editingPageId && !existing) {
+        showToast("Halaman yang akan diedit tidak ditemukan. Muat ulang daftar halaman.", "error");
+        return;
+    }
+    const previousMediaBlobId = existing ? existing.mediaBlobId || null : null;
+    let mediaBlobId = existing ? existing.mediaBlobId || null : null;
+    let imageUrl = existing ? existing.imageUrl || "" : "";
+    let videoUrl = existing ? existing.videoUrl || "" : "";
     let mediaCaption = "";
     let imageSource = "upload";
     let videoSource = "youtube";
@@ -2086,25 +2174,49 @@ async function saveMaterial() {
         if (imageSource === "upload") {
             if (tempImageBlob) {
                 mediaBlobId = "img_" + Date.now();
-                await saveMediaBlob(mediaBlobId, tempImageBlob);
+                if (!await saveMediaBlob(mediaBlobId, tempImageBlob)) {
+                    showToast("Gambar gagal disimpan. Coba lagi.", "error");
+                    return;
+                }
+            } else if (!existing || existing.materialType !== "image" || existing.imageSource !== "upload" || !existing.mediaBlobId) {
+                showToast("Pilih file gambar terlebih dahulu.", "error");
+                return;
             }
+            imageUrl = "";
         } else {
             imageUrl = document.getElementById("imageUrlInput").value.trim();
+            if (!isValidHttpUrl(imageUrl)) {
+                showToast("Masukkan link gambar dengan alamat HTTP atau HTTPS yang valid.", "error");
+                return;
+            }
+            mediaBlobId = null;
         }
     } else if (selectedType === "video") {
         videoSource = document.querySelector("input[name='videoSource']:checked").value;
         mediaCaption = document.getElementById("videoCaption").value.trim();
         if (videoSource === "youtube") {
             videoUrl = document.getElementById("youtubeUrlInput").value.trim();
+            if (!isValidHttpUrl(videoUrl)) {
+                showToast("Masukkan link video HTTP atau HTTPS yang valid.", "error");
+                return;
+            }
+            mediaBlobId = null;
         } else {
             if (tempVideoBlob) {
                 mediaBlobId = "vid_" + Date.now();
-                await saveMediaBlob(mediaBlobId, tempVideoBlob);
+                if (!await saveMediaBlob(mediaBlobId, tempVideoBlob)) {
+                    showToast("Video gagal disimpan. Coba lagi.", "error");
+                    return;
+                }
+            } else if (!existing || existing.materialType !== "video" || existing.videoSource !== "upload" || !existing.mediaBlobId) {
+                showToast("Pilih file video terlebih dahulu.", "error");
+                return;
             }
+            videoUrl = "";
         }
+    } else {
+        mediaBlobId = null;
     }
-
-    const customPages = getCustomPagesFromStorage();
 
     if (editingPageId) {
         const idx = customPages.findIndex(p => p.id === editingPageId);
@@ -2117,19 +2229,15 @@ async function saveMaterial() {
             existing.bullets = bullets;
             existing.infoBox = infoBox;
             existing.mediaCaption = mediaCaption;
-
-            if (selectedType === "image") {
-                existing.imageSource = imageSource;
-                existing.imageUrl = imageUrl;
-                if (mediaBlobId) existing.mediaBlobId = mediaBlobId;
-            } else if (selectedType === "video") {
-                existing.videoSource = videoSource;
-                existing.videoUrl = videoUrl;
-                if (mediaBlobId) existing.mediaBlobId = mediaBlobId;
-            }
+            existing.imageSource = imageSource;
+            existing.imageUrl = imageUrl;
+            existing.videoSource = videoSource;
+            existing.videoUrl = videoUrl;
+            existing.mediaBlobId = mediaBlobId;
+            existing.pageNumber = pageNumber;
+            if (editingDefaultPageId) existing.sourceDefaultId = editingDefaultPageId;
+            delete existing.placement;
         }
-        saveCustomPagesToStorage(customPages);
-        showToast("Materi berhasil diperbarui!", "success");
     } else {
         const newPage = {
             id: "page_" + Date.now(),
@@ -2146,17 +2254,29 @@ async function saveMaterial() {
             videoUrl: videoUrl,
             mediaBlobId: mediaBlobId,
             mediaCaption: mediaCaption,
-            placement: placementVal,
+            pageNumber: pageNumber,
+            sourceDefaultId: editingDefaultPageId,
             createdAt: Date.now()
         };
         customPages.push(newPage);
-        saveCustomPagesToStorage(customPages);
-        showToast("Materi baru berhasil ditambahkan!", "success");
     }
 
-    clearMaterialForm();
+    if (!saveCustomPagesToStorage(customPages)) {
+        if (mediaBlobId && mediaBlobId !== previousMediaBlobId) {
+            await deleteMediaBlob(mediaBlobId);
+        }
+        showToast("Materi gagal disimpan. Penyimpanan browser mungkin penuh.", "error");
+        return;
+    }
+    if (previousMediaBlobId && previousMediaBlobId !== mediaBlobId) {
+        await deleteMediaBlob(previousMediaBlobId);
+    }
+    showToast(editingPageId ? "Materi berhasil diperbarui!" : "Materi baru berhasil ditambahkan!", "success");
+
     await rebuildMasterPages();
     updateDisplay();
+    editingDefaultPageId = null;
+    clearMaterialForm();
 
     // Buka tab kelola halaman
     const tabBtnList = document.getElementById("tabBtnList");
@@ -2188,6 +2308,11 @@ function renderPageListTab() {
             mediaTag = `<span class="badge-tag tag-media">📝 Evaluasi</span>`;
         }
 
+        const customPages = getCustomPagesFromStorage();
+        const pageNumber = page.pageNumber;
+        const isCurriculumReplacement = Boolean(!isDefault && page.rawCustomData.sourceDefaultId);
+        const placementPeers = isDefault ? [] : customPages.filter(p => getCustomPageNumber(p) === pageNumber);
+        const placementIndex = placementPeers.findIndex(p => p.id === page.id);
         const card = document.createElement("div");
         card.className = `page-list-item ${isDefault ? "" : "is-custom"}`;
 
@@ -2198,8 +2323,9 @@ function renderPageListTab() {
                     <div class="item-title">${escapeHtml(page.title || "Halaman " + pageNum)}</div>
                     <div class="item-meta">
                         <span class="badge-tag ${isDefault ? "curriculum" : "teacher-material"}">
-                            ${isDefault ? "Kurikulum 22 Halaman" : "Materi Guru"}
+                            ${isDefault ? "Kurikulum" : (isCurriculumReplacement ? "Halaman Kurikulum (diedit)" : "Materi Guru")}
                         </span>
+                        ${!isDefault ? `<span class="badge-tag page-position-tag">Nomor pilihan ${pageNumber}</span>` : ""}
                         ${mediaTag}
                     </div>
                 </div>
@@ -2208,14 +2334,16 @@ function renderPageListTab() {
                 <button type="button" class="item-btn btn-view" title="Buka halaman ini di buku" data-action="view" data-page="${pageNum}">
                     📖 Buka
                 </button>
+                <button type="button" class="item-btn" title="${isDefault ? "Edit halaman kurikulum ini" : "Edit materi ini"}" data-action="edit" data-id="${page.id}">
+                    ✏️ Edit
+                </button>
                 ${!isDefault ? `
-                    <button type="button" class="item-btn" title="Edit materi ini" data-action="edit" data-id="${page.id}">
-                        ✏️ Edit
-                    </button>
-                    <button type="button" class="item-btn btn-delete" title="Hapus materi ini" data-action="delete" data-id="${page.id}">
-                        🗑️ Hapus
-                    </button>
+                    <button type="button" class="item-btn item-btn-order" title="Naikkan urutan materi" aria-label="Naikkan urutan materi" data-action="move-up" data-id="${page.id}" ${placementIndex <= 0 ? "disabled" : ""}>↑</button>
+                    <button type="button" class="item-btn item-btn-order" title="Turunkan urutan materi" aria-label="Turunkan urutan materi" data-action="move-down" data-id="${page.id}" ${placementIndex === placementPeers.length - 1 ? "disabled" : ""}>↓</button>
                 ` : ""}
+                <button type="button" class="item-btn btn-delete" title="${isDefault ? "Hapus halaman kurikulum ini" : "Hapus materi ini"}" data-action="delete" data-id="${page.id}">
+                    🗑️ Hapus
+                </button>
             </div>
         `;
 
@@ -2236,10 +2364,71 @@ async function handlePageAction(e) {
         closePanel();
         goToPage(pageNum);
     } else if (action === "edit") {
-        editCustomPage(id);
+        const page = masterPages[pageNum - 1];
+        if (page && page.type === "custom") {
+            editCustomPage(id);
+        } else if (page) {
+            editDefaultPage(page, pageNum);
+        }
     } else if (action === "delete") {
         deleteCustomPage(id);
+    } else if (action === "move-up" || action === "move-down") {
+        moveCustomPage(id, action === "move-up" ? -1 : 1);
     }
+}
+
+async function moveCustomPage(pageId, direction) {
+    const customPages = getCustomPagesFromStorage();
+    const index = customPages.findIndex(page => page.id === pageId);
+    if (index === -1) return;
+
+    const pageNumber = getCustomPageNumber(customPages[index]);
+    const peers = customPages
+        .map((page, pageIndex) => ({ page, pageIndex }))
+        .filter(item => getCustomPageNumber(item.page) === pageNumber);
+    const position = peers.findIndex(item => item.page.id === pageId);
+    const target = peers[position + direction];
+    if (!target) return;
+
+    [customPages[index], customPages[target.pageIndex]] = [customPages[target.pageIndex], customPages[index]];
+    if (!saveCustomPagesToStorage(customPages)) {
+        showToast("Urutan halaman gagal disimpan.", "error");
+        return;
+    }
+    await rebuildMasterPages();
+    updateDisplay();
+}
+
+function editDefaultPage(page, pageNumber) {
+    clearMaterialForm();
+    editingDefaultPageId = page.id;
+    setPageNumberInput(pageNumber);
+
+    document.getElementById("editModeBanner").style.display = "flex";
+    document.getElementById("editPageTitlePreview").textContent = page.title;
+    document.getElementById("pageTitle").value = page.title || "";
+    document.getElementById("pageKicker").value = page.kicker || "MATERI KURIKULUM";
+
+    const source = document.createElement("div");
+    source.innerHTML = page.render(pageNumber);
+    const bulletItems = [...source.querySelectorAll(".content-list li")].map(item => {
+        const parts = [...item.querySelectorAll("span")];
+        return (parts.length > 1 ? parts[parts.length - 1].textContent : item.textContent).trim();
+    }).filter(Boolean);
+    const infoBox = source.querySelector(".info-box");
+    document.getElementById("pageInfoBox").value = infoBox ? infoBox.innerText.trim() : "";
+    source.querySelectorAll(".page-kicker, .page-title, .page-number, .content-list, .info-box, a, button").forEach(element => element.remove());
+    document.getElementById("pageDescription").value = source.innerText.trim() || page.title;
+    document.getElementById("pageBullets").value = bulletItems.join("\n");
+
+    const textRadio = document.querySelector("input[name='materialType'][value='text']");
+    if (textRadio) {
+        textRadio.checked = true;
+        textRadio.dispatchEvent(new Event("change"));
+    }
+
+    const tabBtnAdd = document.getElementById("tabBtnAdd");
+    if (tabBtnAdd) tabBtnAdd.click();
 }
 
 function editCustomPage(pageId) {
@@ -2248,9 +2437,11 @@ function editCustomPage(pageId) {
     if (!page) return;
 
     editingPageId = page.id;
+    editingDefaultPageId = page.sourceDefaultId || null;
 
     document.getElementById("editModeBanner").style.display = "flex";
     document.getElementById("editPageTitlePreview").textContent = page.title;
+    setPageNumberInput(getCustomPageNumber(page));
 
     document.getElementById("pageTitle").value = page.title || "";
     document.getElementById("pageKicker").value = page.kicker || "04 / MATERI TAMBAHAN";
@@ -2281,24 +2472,41 @@ function editCustomPage(pageId) {
         document.getElementById("youtubeUrlInput").value = page.videoUrl || "";
         document.getElementById("videoCaption").value = page.mediaCaption || "";
     }
-
     const tabBtnAdd = document.getElementById("tabBtnAdd");
     if (tabBtnAdd) tabBtnAdd.click();
 }
 
 async function deleteCustomPage(pageId) {
-    if (!confirm("Hapus materi ini dari flipbook?")) return;
-
-    let customPages = getCustomPagesFromStorage();
-    const target = customPages.find(p => p.id === pageId);
-    if (target && target.mediaBlobId) {
-        await deleteMediaBlob(target.mediaBlobId);
+    if (getTotalPages() <= 1) {
+        showToast("Buku harus memiliki minimal satu halaman.", "error");
+        return;
     }
 
-    customPages = customPages.filter(p => p.id !== pageId);
-    saveCustomPagesToStorage(customPages);
+    const customPages = getCustomPagesFromStorage();
+    const target = customPages.find(p => p.id === pageId);
+    const defaultPage = target ? null : getDefaultPagesMeta().find(page => page.id === pageId);
+    const pageTitle = target ? target.title : (defaultPage ? defaultPage.title : "halaman ini");
+    const sourceDefaultId = target ? target.sourceDefaultId : defaultPage && defaultPage.id;
+    if (!confirm(`Hapus "${pageTitle}" dari flipbook? Halaman yang dihapus dapat dikembalikan lewat Reset Materi Tambahan.`)) return;
+
+    const updatedPages = customPages.filter(p => p.id !== pageId);
+    if (!saveCustomPagesToStorage(updatedPages)) {
+        showToast("Materi gagal dihapus dari penyimpanan.", "error");
+        return;
+    }
+    if (sourceDefaultId) {
+        const hiddenDefaultPages = getHiddenDefaultPages();
+        if (!hiddenDefaultPages.includes(sourceDefaultId) && !saveHiddenDefaultPages([...hiddenDefaultPages, sourceDefaultId])) {
+            saveCustomPagesToStorage(customPages);
+            showToast("Halaman kurikulum gagal dihapus.", "error");
+            return;
+        }
+    }
+    if (target && target.mediaBlobId) await deleteMediaBlob(target.mediaBlobId);
 
     await rebuildMasterPages();
+    mobilePage = Math.min(mobilePage, getTotalPages());
+    spreadStart = Math.min(spreadStart, getLastSpreadStart());
     updateDisplay();
     showToast("Materi berhasil dihapus.", "info");
 }
@@ -2339,11 +2547,12 @@ if (saveNewPinBtn) {
 const resetAllMaterialsBtn = document.getElementById("resetAllMaterialsBtn");
 if (resetAllMaterialsBtn) {
     resetAllMaterialsBtn.addEventListener("click", async () => {
-        if (!confirm("Hapus semua materi tambahan guru dan kembali ke 22 halaman standar?")) {
+        if (!confirm("Hapus semua materi guru, pulihkan halaman kurikulum yang diubah atau dihapus, dan kembalikan flipbook ke 22 halaman standar?")) {
             return;
         }
 
         localStorage.removeItem("flipbook_custom_pages");
+        localStorage.removeItem("flipbook_hidden_default_pages");
         await clearAllMediaBlobs();
 
         await rebuildMasterPages();

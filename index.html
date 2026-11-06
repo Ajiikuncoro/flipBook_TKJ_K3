@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NETBOOK - Media dan Jaringan Telekomunikasi</title>
-    <link rel="stylesheet" href="style.css?v=2.2">
+    <link rel="stylesheet" href="style.css?v=2.6">
 </head>
 <body>
     <div class="app">
@@ -231,6 +231,7 @@
                                         <small>YouTube atau file MP4</small>
                                     </div>
                                 </label>
+
                             </div>
                         </div>
 
@@ -345,13 +346,11 @@
                             <textarea id="pageInfoBox" class="form-control" rows="2" placeholder="Catatan tambahan yang akan tampil di kotak info khusus"></textarea>
                         </div>
 
-                        <!-- POSISI PENEMPATAN -->
+                        <!-- NOMOR HALAMAN -->
                         <div class="form-group">
-                            <label class="form-label" for="pagePlacement">Posisi Halaman di Buku:</label>
-                            <select id="pagePlacement" class="form-control">
-                                <option value="before_quiz" selected>Sebelum Halaman Evaluasi Wayground (Disarankan)</option>
-                                <option value="end">Di Halaman Paling Akhir Buku</option>
-                            </select>
+                            <label class="form-label" for="pageNumber">Nomor Halaman Materi:</label>
+                            <input type="number" id="pageNumber" class="form-control" min="1" step="1" required>
+                            <span class="field-hint">Tentukan nomor halaman (maksimal 100). Halaman lain otomatis bergeser; halaman baru default ditambahkan di urutan terakhir.</span>
                         </div>
 
                         <!-- TOMBOL AKSI FORM -->
@@ -369,7 +368,7 @@
                 <!-- ============================================= -->
                 <div class="tab-content" id="navList" style="display:none;">
                     <div class="page-list-intro">
-                        <p>Daftar seluruh halaman flipbook saat ini. Anda dapat mengklik tombol <strong>"Buka"</strong> untuk langsung menuju halaman tersebut di buku.</p>
+                        <p>Nomor di kiri menunjukkan nomor halaman di flipbook. Gunakan <strong>Edit</strong> untuk merapikan materi dan menentukan nomor halamannya; halaman lain otomatis bergeser. Tombol <strong>↑ / ↓</strong> mengatur urutan materi yang memiliki nomor pilihan sama.</p>
                     </div>
 
                     <div class="page-list-container" id="pageListContainer">
@@ -410,7 +409,7 @@
                     <div class="settings-card danger-card">
                         <div class="settings-card-header">
                             <h3>⚠️ Reset Materi Tambahan</h3>
-                            <p>Hapus semua materi yang pernah ditambahkan guru dan kembalikan flipbook ke 22 halaman standar awal.</p>
+                            <p>Hapus materi guru, pulihkan halaman kurikulum yang diedit/dihapus, dan kembalikan flipbook ke 22 halaman standar.</p>
                         </div>
                         <button type="button" class="btn-danger" id="resetAllMaterialsBtn">
                             Kembalikan ke 22 Halaman Awal
@@ -427,6 +426,6 @@
     <!-- TOAST NOTIFIKASI -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="script.js?v=2.2"></script>
+    <script src="script.js?v=2.6"></script>
 </body>
 </html>

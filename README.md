@@ -45,10 +45,12 @@ Panel dirancang ramah pengguna (*user-friendly*), cepat, dan tidak membingungkan
      - 📝 **Tulisan Saja** (Teks materi dan poin penjelasan).
      - 🖼️ **Gambar + Teks** (Upload file foto atau link URL gambar).
      - 🎬 **Video + Teks** (Cukup masukkan link **YouTube** atau upload file video MP4).
-   - Klik **"💾 Simpan Materi ke Buku"**, materi langsung tersimpan dan muncul di dalam flipbook!
-3. **📚 Kelola Halaman (22 Halaman):**
-   - Menampilkan daftar semua 22 halaman kurikulum serta materi tambahan guru.
+   - Klik **"💾 Simpan Materi ke Buku"** untuk otomatis membuat halaman baru di flipbook.
+3. **📚 Kelola Halaman:**
+   - Menampilkan halaman kurikulum dan materi tambahan guru. Semua halaman memiliki tombol **"📖 Buka"**, **"✏️ Edit"**, dan **"🗑️ Hapus"**.
+   - Edit halaman kurikulum akan mengganti isinya dengan versi yang dapat disunting; menghapusnya mengeluarkan halaman dari buku. Reset memulihkan kurikulum awal dan menghapus materi guru.
    - Klik **"📖 Buka"** untuk langsung membaca dan menampilkan halaman yang dipilih.
-   - Tombol **"✏️ Edit"** dan **"🗑️ Hapus"** untuk materi tambahan guru.
+   - Saat menambah atau mengedit materi, tentukan nomor halaman yang diinginkan hingga batas **100 halaman**. Halaman lain otomatis bergeser; jika buku sudah mencapai 100 halaman, materi baru tidak dapat ditambahkan.
+   - Tombol **"↑ / ↓"** untuk mengatur urutan materi guru yang memiliki nomor pilihan sama, serta **"🗑️ Hapus"** untuk menghapusnya.
 4. **🔒 Ganti PIN Guru:**
    - Ubah PIN guru kapan saja dan tombol reset jika ingin kembali ke 22 halaman kurikulum awal.
