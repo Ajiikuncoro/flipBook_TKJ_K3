@@ -31,26 +31,3 @@ Aplikasi buku digital interaktif berbasis web dengan animasi flip 3D yang telah 
 21. **Halaman 21:** Rangkuman Materi Pembelajaran
 22. **Halaman 22:** Evaluasi Pembelajaran Interaktif (Wayground)
 
----
-
-## 🎓 Panel Guru & Administrator (Sederhana & Praktis)
-
-Panel dirancang ramah pengguna (*user-friendly*), cepat, dan tidak membingungkan:
-
-1. **Akses Aman Khusus Guru:**
-   - Tombol **"🔒 Panel Guru"** di kanan atas.
-   - PIN Keamanan Default: **`guru123`**.
-2. **➕ Tambah Materi Baru:**
-   - Guru dapat memilih 3 bentuk materi:
-     - 📝 **Tulisan Saja** (Teks materi dan poin penjelasan).
-     - 🖼️ **Gambar + Teks** (Upload file foto atau link URL gambar).
-     - 🎬 **Video + Teks** (Cukup masukkan link **YouTube** atau upload file video MP4).
-   - Klik **"💾 Simpan Materi ke Buku"** untuk otomatis membuat halaman baru di flipbook.
-3. **📚 Kelola Halaman:**
-   - Menampilkan halaman kurikulum dan materi tambahan guru. Semua halaman memiliki tombol **"📖 Buka"**, **"✏️ Edit"**, dan **"🗑️ Hapus"**.
-   - Edit halaman kurikulum akan mengganti isinya dengan versi yang dapat disunting; menghapusnya mengeluarkan halaman dari buku. Reset memulihkan kurikulum awal dan menghapus materi guru.
-   - Klik **"📖 Buka"** untuk langsung membaca dan menampilkan halaman yang dipilih.
-   - Saat menambah atau mengedit materi, tentukan nomor halaman yang diinginkan hingga batas **100 halaman**. Halaman lain otomatis bergeser; jika buku sudah mencapai 100 halaman, materi baru tidak dapat ditambahkan.
-   - Tombol **"↑ / ↓"** untuk mengatur urutan materi guru yang memiliki nomor pilihan sama, serta **"🗑️ Hapus"** untuk menghapusnya.
-4. **🔒 Ganti PIN Guru:**
-   - Ubah PIN guru kapan saja dan tombol reset jika ingin kembali ke 22 halaman kurikulum awal.
