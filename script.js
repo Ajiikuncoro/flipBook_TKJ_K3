@@ -1737,29 +1737,45 @@ const togglePasswordBtn = document.getElementById("togglePasswordBtn");
 const submitLoginBtn = document.getElementById("submitLoginBtn");
 const authErrorMsg = document.getElementById("authErrorMsg");
 
+function handleTeacherBtnClick(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    if (isTeacherSessionActive()) {
+        openPanel();
+    } else {
+        openAuth();
+    }
+}
+
 if (openTeacherPanelBtn) {
-    openTeacherPanelBtn.addEventListener("click", () => {
-        if (isTeacherSessionActive()) {
-            openPanel();
-        } else {
-            openAuth();
-        }
-    });
+    openTeacherPanelBtn.addEventListener("click", handleTeacherBtnClick);
 }
 
 function openAuth() {
-    if (authModal) {
-        authModal.style.display = "flex";
-        if (teacherPinInput) {
-            teacherPinInput.value = "";
-            teacherPinInput.focus();
+    const modal = document.getElementById("teacherAuthModal");
+    const pinInput = document.getElementById("teacherPinInput");
+    const errMsg = document.getElementById("authErrorMsg");
+    if (modal) {
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (pinInput) {
+            pinInput.value = "";
+            setTimeout(() => {
+                try { pinInput.focus(); } catch (err) {}
+            }, 100);
         }
-        if (authErrorMsg) authErrorMsg.style.display = "none";
+        if (errMsg) errMsg.style.display = "none";
     }
 }
 
 function closeAuth() {
-    if (authModal) authModal.style.display = "none";
+    const modal = document.getElementById("teacherAuthModal");
+    if (modal) {
+        modal.classList.remove("active");
+        modal.style.display = "none";
+    }
 }
 
 if (closeAuthModalBtn) closeAuthModalBtn.addEventListener("click", closeAuth);
@@ -1777,16 +1793,19 @@ if (togglePasswordBtn && teacherPinInput) {
 }
 
 function verifyLogin() {
-    const enteredPin = teacherPinInput.value.trim();
+    const pinInput = document.getElementById("teacherPinInput");
+    const errMsg = document.getElementById("authErrorMsg");
+    if (!pinInput) return;
+    const enteredPin = pinInput.value.trim();
     if (enteredPin === getTeacherPin()) {
         setTeacherSessionActive(true);
         closeAuth();
         openPanel();
         showToast("Berhasil masuk ke Panel Guru!", "success");
     } else {
-        if (authErrorMsg) {
-            authErrorMsg.textContent = "PIN salah. Gunakan PIN bawaan: guru123";
-            authErrorMsg.style.display = "block";
+        if (errMsg) {
+            errMsg.textContent = "PIN salah. Gunakan PIN bawaan: guru123";
+            errMsg.style.display = "block";
         }
     }
 }
@@ -1802,17 +1821,31 @@ if (teacherPinInput) {
 }
 
 function openPanel() {
-    if (panelModal) {
-        panelModal.style.display = "flex";
+    const modal = document.getElementById("teacherPanelModal");
+    if (modal) {
+        modal.classList.add("active");
+        modal.style.display = "flex";
         renderPageListTab();
     }
 }
 
 function closePanel() {
-    if (panelModal) panelModal.style.display = "none";
+    const modal = document.getElementById("teacherPanelModal");
+    if (modal) {
+        modal.classList.remove("active");
+        modal.style.display = "none";
+    }
 }
 
 if (closePanelModalBtn) closePanelModalBtn.addEventListener("click", closePanel);
+
+// Ekspos fungsi ke global window agar selalu bisa dipanggil langsung
+window.handleTeacherBtnClick = handleTeacherBtnClick;
+window.openAuth = openAuth;
+window.closeAuth = closeAuth;
+window.openPanel = openPanel;
+window.closePanel = closePanel;
+window.verifyLogin = verifyLogin;
 
 if (logoutTeacherBtn) {
     logoutTeacherBtn.addEventListener("click", () => {

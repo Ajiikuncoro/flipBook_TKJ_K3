@@ -1122,15 +1122,20 @@ kbd {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 2000;
-    background: rgba(4, 13, 20, 0.85);
+    z-index: 999999;
+    background: rgba(4, 13, 20, 0.88);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     padding: 16px;
     animation: fadeInOverlay 0.2s ease-out;
+}
+
+.modal-overlay.active,
+.modal-overlay[style*="display: flex"] {
+    display: flex !important;
 }
 
 @keyframes fadeInOverlay {

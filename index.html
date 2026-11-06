@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NETBOOK - Media dan Jaringan Telekomunikasi</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
     <div class="app">
@@ -25,7 +25,7 @@
             </div>
 
             <div class="header-controls">
-                <button class="teacher-panel-trigger" id="openTeacherPanelBtn" title="Akses Khusus Guru & Admin">
+                <button class="teacher-panel-trigger" id="openTeacherPanelBtn" type="button" onclick="handleTeacherBtnClick(event)" title="Akses Khusus Guru & Admin">
                     <span class="btn-icon" id="panelLockIcon">🔒</span>
                     <span class="btn-text" id="panelBtnText">Panel Guru</span>
                     <span class="teacher-active-dot" id="teacherActiveDot" style="display:none;" title="Sesi Guru Aktif"></span>
@@ -125,7 +125,7 @@
                 <p>Masukkan PIN untuk menambah materi baru atau mengelola halaman buku.</p>
             </div>
 
-            <form id="teacherLoginForm" onsubmit="return false;">
+            <form id="teacherLoginForm" onsubmit="verifyLogin(); return false;">
                 <div class="form-group">
                     <label for="teacherPinInput">PIN / Kata Sandi Guru</label>
                     <div class="password-input-wrapper">
@@ -140,8 +140,8 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" id="closeAuthModalBtn">Batal</button>
-                    <button type="submit" class="btn-primary" id="submitLoginBtn">Masuk ke Panel</button>
+                    <button type="button" class="btn-secondary" id="closeAuthModalBtn" onclick="closeAuth()">Batal</button>
+                    <button type="submit" class="btn-primary" id="submitLoginBtn" onclick="verifyLogin()">Masuk ke Panel</button>
                 </div>
             </form>
         </div>
@@ -166,7 +166,7 @@
                     <button type="button" class="btn-outline-danger" id="logoutTeacherBtn" title="Keluar dari sesi guru">
                         🚪 Logout
                     </button>
-                    <button type="button" class="panel-close-btn" id="closePanelModalBtn" title="Tutup panel">✕</button>
+                    <button type="button" class="panel-close-btn" id="closePanelModalBtn" onclick="closePanel()" title="Tutup panel">✕</button>
                 </div>
             </div>
 
@@ -427,6 +427,6 @@
     <!-- TOAST NOTIFIKASI -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.2"></script>
 </body>
 </html>
