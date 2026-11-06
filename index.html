@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NETBOOK - Media dan Jaringan Telekomunikasi</title>
     <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
 </head>
 <body>
     <div class="app">
 
+        <!-- HEADER -->
         <header class="topbar">
             <div class="brand">
                 <div class="brand-icon">N</div>
@@ -24,10 +24,19 @@
                 MEDIA PEMBELAJARAN DIGITAL
             </div>
 
-            <button class="icon-button" id="fullscreenBtn"
-                    type="button" title="Layar penuh">⛶</button>
+            <div class="header-controls">
+                <button class="teacher-panel-trigger" id="openTeacherPanelBtn" title="Akses Khusus Guru & Admin">
+                    <span class="btn-icon" id="panelLockIcon">🔒</span>
+                    <span class="btn-text" id="panelBtnText">Panel Guru</span>
+                    <span class="teacher-active-dot" id="teacherActiveDot" style="display:none;" title="Sesi Guru Aktif"></span>
+                </button>
+
+                <button class="icon-button" id="fullscreenBtn"
+                        type="button" title="Layar penuh">⛶</button>
+            </div>
         </header>
 
+        <!-- MAIN -->
         <main class="main-content">
             <section class="intro">
                 <div class="eyebrow">DIGITAL LEARNING EXPERIENCE</div>
@@ -39,14 +48,17 @@
                 <div class="book-scene">
                     <div class="book" id="book">
 
+                        <!-- HALAMAN KIRI -->
                         <div class="book-page left-page">
                             <div class="page-inner" id="leftContent"></div>
                         </div>
 
+                        <!-- HALAMAN KANAN -->
                         <div class="book-page right-page">
                             <div class="page-inner" id="rightContent"></div>
                         </div>
 
+                        <!-- LEMBAR ANIMASI FLIP -->
                         <div class="flip-sheet" id="flipSheet">
                             <div class="flip-face flip-front" id="flipFront"></div>
                             <div class="flip-face flip-back" id="flipBack"></div>
@@ -55,6 +67,7 @@
                     </div>
                 </div>
 
+                <!-- NAVIGASI -->
                 <div class="navigation">
                     <button class="nav-button" id="prevBtn" type="button">
                         <span>‹</span>
@@ -93,11 +106,327 @@
             </section>
         </main>
 
+        <!-- FOOTER -->
         <footer class="footer">
             <span>NETBOOK • MEDIA PEMBELAJARAN</span>
             <span>KELOMPOK 3 • 2026</span>
         </footer>
 
     </div>
+
+    <!-- ===================================================== -->
+    <!-- MODAL 1: LOGIN GURU / ADMIN                           -->
+    <!-- ===================================================== -->
+    <div class="modal-overlay" id="teacherAuthModal" style="display:none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-icon-badge">🔐</div>
+                <h2>Akses Panel Guru</h2>
+                <p>Masukkan PIN untuk menambah materi baru atau mengelola halaman buku.</p>
+            </div>
+
+            <form id="teacherLoginForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="teacherPinInput">PIN / Kata Sandi Guru</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="teacherPinInput" placeholder="Masukkan PIN guru..." autocomplete="current-password" required>
+                        <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Lihat/Sembunyikan Sandi">👁️</button>
+                    </div>
+                    <div class="auth-hint">
+                        <span class="hint-icon">💡</span>
+                        <span>PIN bawaan default: <strong>guru123</strong></span>
+                    </div>
+                    <div class="auth-error-msg" id="authErrorMsg" style="display:none;"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="closeAuthModalBtn">Batal</button>
+                    <button type="submit" class="btn-primary" id="submitLoginBtn">Masuk ke Panel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- MODAL 2: PANEL PENGELOLAAN GURU & ADMIN (SEDERHANA)   -->
+    <!-- ===================================================== -->
+    <div class="modal-overlay" id="teacherPanelModal" style="display:none;">
+        <div class="panel-dialog">
+
+            <!-- PANEL HEADER -->
+            <div class="panel-header">
+                <div class="panel-title-area">
+                    <div class="panel-badge">
+                        <span class="badge-icon">🎓</span>
+                        <span>PANEL GURU & ADMIN</span>
+                    </div>
+                    <h2>Kelola Materi & Halaman</h2>
+                </div>
+                <div class="panel-header-buttons">
+                    <button type="button" class="btn-outline-danger" id="logoutTeacherBtn" title="Keluar dari sesi guru">
+                        🚪 Logout
+                    </button>
+                    <button type="button" class="panel-close-btn" id="closePanelModalBtn" title="Tutup panel">✕</button>
+                </div>
+            </div>
+
+            <!-- TABS NAV -->
+            <div class="panel-tabs">
+                <button type="button" class="panel-tab-btn active" id="tabBtnAdd" data-tab="tabAdd">
+                    ➕ Tambah Materi Baru
+                </button>
+                <button type="button" class="panel-tab-btn" id="tabBtnList" data-tab="navList">
+                    📚 Kelola Halaman <span class="tab-badge" id="panelPageBadge">22</span>
+                </button>
+                <button type="button" class="panel-tab-btn" id="tabBtnSettings" data-tab="tabSettings">
+                    🔒 Ganti PIN Guru
+                </button>
+            </div>
+
+            <!-- PANEL BODY -->
+            <div class="panel-body">
+
+                <!-- ============================================= -->
+                <!-- TAB 1: FORM TAMBAH / EDIT MATERI              -->
+                <!-- ============================================= -->
+                <div class="tab-content active" id="tabAdd">
+
+                    <div class="edit-mode-banner" id="editModeBanner" style="display:none;">
+                        <div>
+                            <strong>✏️ Mode Edit:</strong>
+                            <span id="editPageTitlePreview">Judul Halaman</span>
+                        </div>
+                        <button type="button" class="btn-xs-cancel" id="cancelEditBtn">Batal Edit (Buat Baru)</button>
+                    </div>
+
+                    <form id="materialForm" onsubmit="return false;">
+                        
+                        <!-- PILIHAN TIPE MATERI -->
+                        <div class="form-group">
+                            <label class="form-label">Pilih Bentuk Materi yang Ingin Ditambahkan:</label>
+                            <div class="type-selector-grid">
+                                <label class="type-card active">
+                                    <input type="radio" name="materialType" value="text" checked>
+                                    <div class="type-card-inner">
+                                        <span class="type-icon">📝</span>
+                                        <strong>Tulisan Saja</strong>
+                                        <small>Teks & poin penjelasan</small>
+                                    </div>
+                                </label>
+
+                                <label class="type-card">
+                                    <input type="radio" name="materialType" value="image">
+                                    <div class="type-card-inner">
+                                        <span class="type-icon">🖼️</span>
+                                        <strong>Gambar + Teks</strong>
+                                        <small>Foto alat, skema jaringan</small>
+                                    </div>
+                                </label>
+
+                                <label class="type-card">
+                                    <input type="radio" name="materialType" value="video">
+                                    <div class="type-card-inner">
+                                        <span class="type-icon">🎬</span>
+                                        <strong>Video + Teks</strong>
+                                        <small>YouTube atau file MP4</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- KICKER & JUDUL -->
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label class="form-label" for="pageKicker">Label Subjek / Kicker</label>
+                                <input type="text" id="pageKicker" class="form-control" placeholder="Contoh: 04 / MATERI TAMBAHAN" value="04 / MATERI TAMBAHAN">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="pageTitle">Judul Materi <span class="req">*</span></label>
+                                <input type="text" id="pageTitle" class="form-control" placeholder="Contoh: Pengkabelan UTP Straight" required>
+                            </div>
+                        </div>
+
+                        <!-- DESKRIPSI UTAMA -->
+                        <div class="form-group">
+                            <label class="form-label" for="pageDescription">Isi Penjelasan Materi <span class="req">*</span></label>
+                            <textarea id="pageDescription" class="form-control" rows="3" placeholder="Tuliskan rangkuman atau isi materi pembelajaran di sini..." required></textarea>
+                        </div>
+
+                        <!-- SECTION MEDIA: GAMBAR (KONDISIONAL) -->
+                        <div class="media-input-box" id="imageInputSection" style="display:none;">
+                            <div class="media-box-title">
+                                <span>🖼️ Upload / Pilih Gambar</span>
+                                <div class="media-source-toggle">
+                                    <label><input type="radio" name="imageSource" value="upload" checked> Upload dari Komputer</label>
+                                    <label><input type="radio" name="imageSource" value="url"> Link URL Gambar</label>
+                                </div>
+                            </div>
+
+                            <!-- Upload File Gambar -->
+                            <div id="imageUploadWrapper" class="source-field-wrapper">
+                                <div class="file-upload-zone" id="imageDropZone">
+                                    <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden-file-input">
+                                    <div class="upload-zone-content">
+                                        <span class="upload-icon">📁</span>
+                                        <p>Klik untuk memilih file gambar dari komputer Anda</p>
+                                        <small>Mendukung JPG, PNG, WEBP, GIF</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- URL Gambar -->
+                            <div id="imageUrlWrapper" class="source-field-wrapper" style="display:none;">
+                                <input type="url" id="imageUrlInput" class="form-control" placeholder="https://example.com/gambar-topologi.jpg">
+                            </div>
+
+                            <!-- Preview Gambar -->
+                            <div class="media-preview-container" id="imagePreviewContainer" style="display:none;">
+                                <img id="imagePreviewElement" src="" alt="Pratinjau Gambar">
+                                <button type="button" class="btn-remove-media" id="removeImageBtn" title="Hapus gambar">✕</button>
+                            </div>
+
+                            <!-- Caption Gambar -->
+                            <div class="form-group" style="margin-top:10px;">
+                                <label class="form-label" for="imageCaption">Keterangan Gambar (Opsional)</label>
+                                <input type="text" id="imageCaption" class="form-control" placeholder="Contoh: Gambar skema urutan warna kabel T568B">
+                            </div>
+                        </div>
+
+                        <!-- SECTION MEDIA: VIDEO (KONDISIONAL) -->
+                        <div class="media-input-box" id="videoInputSection" style="display:none;">
+                            <div class="media-box-title">
+                                <span>🎬 Pilih Video</span>
+                                <div class="media-source-toggle">
+                                    <label><input type="radio" name="videoSource" value="youtube" checked> Link YouTube</label>
+                                    <label><input type="radio" name="videoSource" value="upload"> Upload Video (MP4)</label>
+                                </div>
+                            </div>
+
+                            <!-- Link YouTube -->
+                            <div id="videoYoutubeWrapper" class="source-field-wrapper">
+                                <input type="url" id="youtubeUrlInput" class="form-control" placeholder="Contoh: https://www.youtube.com/watch?v=... atau https://youtu.be/...">
+                                <span class="field-hint">Otomatis langsung bisa diputar oleh siswa di dalam buku</span>
+                            </div>
+
+                            <!-- Upload File Video -->
+                            <div id="videoUploadWrapper" class="source-field-wrapper" style="display:none;">
+                                <div class="file-upload-zone" id="videoDropZone">
+                                    <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/ogg" class="hidden-file-input">
+                                    <div class="upload-zone-content">
+                                        <span class="upload-icon">🎥</span>
+                                        <p>Klik untuk memilih file video MP4 dari komputer Anda</p>
+                                        <small>Tersimpan secara lokal di browser</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview Video -->
+                            <div class="media-preview-container" id="videoPreviewContainer" style="display:none;">
+                                <div id="videoPreviewPlayerArea"></div>
+                                <button type="button" class="btn-remove-media" id="removeVideoBtn" title="Hapus video">✕</button>
+                            </div>
+
+                            <!-- Caption Video -->
+                            <div class="form-group" style="margin-top:10px;">
+                                <label class="form-label" for="videoCaption">Keterangan Video (Opsional)</label>
+                                <input type="text" id="videoCaption" class="form-control" placeholder="Contoh: Video tutorial langkah crimping kabel RJ-45">
+                            </div>
+                        </div>
+
+                        <!-- POIN-POIN CHECKLIST -->
+                        <div class="form-group">
+                            <label class="form-label" for="pageBullets">Poin-Poin Penting (Opsional)</label>
+                            <textarea id="pageBullets" class="form-control" rows="2" placeholder="Tuliskan 1 poin per baris (akan otomatis menjadi checklist nomor)"></textarea>
+                        </div>
+
+                        <!-- KOTAK CATATAN / INFO BOX -->
+                        <div class="form-group">
+                            <label class="form-label" for="pageInfoBox">Catatan Guru / Tips Penting (Opsional)</label>
+                            <textarea id="pageInfoBox" class="form-control" rows="2" placeholder="Catatan tambahan yang akan tampil di kotak info khusus"></textarea>
+                        </div>
+
+                        <!-- POSISI PENEMPATAN -->
+                        <div class="form-group">
+                            <label class="form-label" for="pagePlacement">Posisi Halaman di Buku:</label>
+                            <select id="pagePlacement" class="form-control">
+                                <option value="before_quiz" selected>Sebelum Halaman Evaluasi Wayground (Disarankan)</option>
+                                <option value="end">Di Halaman Paling Akhir Buku</option>
+                            </select>
+                        </div>
+
+                        <!-- TOMBOL AKSI FORM -->
+                        <div class="form-footer-actions">
+                            <button type="button" class="btn-secondary" id="resetFormBtn">🔄 Kosongkan</button>
+                            <button type="button" class="btn-primary" id="saveMaterialBtn">💾 Simpan Materi ke Buku</button>
+                        </div>
+
+                    </form>
+
+                </div>
+
+                <!-- ============================================= -->
+                <!-- TAB 2: KELOLA & URUTAN HALAMAN                -->
+                <!-- ============================================= -->
+                <div class="tab-content" id="navList" style="display:none;">
+                    <div class="page-list-intro">
+                        <p>Daftar seluruh halaman flipbook saat ini. Anda dapat mengklik tombol <strong>"Buka"</strong> untuk langsung menuju halaman tersebut di buku.</p>
+                    </div>
+
+                    <div class="page-list-container" id="pageListContainer">
+                        <!-- Dimuat secara dinamis oleh JavaScript -->
+                    </div>
+                </div>
+
+                <!-- ============================================= -->
+                <!-- TAB 3: GANTI PIN GURU                         -->
+                <!-- ============================================= -->
+                <div class="tab-content" id="tabSettings" style="display:none;">
+
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h3>🔑 Ganti PIN Masuk Guru</h3>
+                            <p>Ubah PIN agar hanya Anda yang dapat mengakses panel ini.</p>
+                        </div>
+                        <form id="changePinForm" onsubmit="return false;" class="settings-form">
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label class="form-label" for="oldPinInput">PIN Lama</label>
+                                    <input type="password" id="oldPinInput" class="form-control" placeholder="Masukkan PIN lama..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="newPinInput">PIN Baru</label>
+                                    <input type="password" id="newPinInput" class="form-control" placeholder="Minimal 4 karakter..." required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="confirmPinInput">Konfirmasi PIN Baru</label>
+                                <input type="password" id="confirmPinInput" class="form-control" placeholder="Ketik ulang PIN baru..." required>
+                            </div>
+                            <button type="button" class="btn-primary" id="saveNewPinBtn">Simpan PIN Baru</button>
+                        </form>
+                    </div>
+
+                    <!-- RESET MATERI TAMBAHAN GURU -->
+                    <div class="settings-card danger-card">
+                        <div class="settings-card-header">
+                            <h3>⚠️ Reset Materi Tambahan</h3>
+                            <p>Hapus semua materi yang pernah ditambahkan guru dan kembalikan flipbook ke 22 halaman standar awal.</p>
+                        </div>
+                        <button type="button" class="btn-danger" id="resetAllMaterialsBtn">
+                            Kembalikan ke 22 Halaman Awal
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFIKASI -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,18 +1,14 @@
 // =====================================================
 // NETBOOK - MEDIA DAN JARINGAN TELEKOMUNIKASI
-// KELOMPOK 3 - 2026
+// KELOMPOK 3 - 2026 (WITH INTEGRATED TEACHER PANEL)
+// SINKRONISASI 22 HALAMAN KURIKULUM + PANEL GURU DINAMIS
 // =====================================================
 
-// GANTI DENGAN LINK EVALUASI WAYGROUND KELOMPOK
+// LINK EVALUASI WAYGROUND RESMI
 const waygroundURL = "https://wayground.com/join?gc=63289187";
-
-const TOTAL_PAGES = 22;
 const ANIMATION_DURATION = 850;
 
-// =====================================================
-// ELEMEN HTML
-// =====================================================
-
+// Elemen HTML Flipbook Utama
 const leftContent = document.getElementById("leftContent");
 const rightContent = document.getElementById("rightContent");
 
@@ -28,29 +24,154 @@ const currentPageText = document.getElementById("currentPage");
 const totalPageText = document.getElementById("totalPage");
 const progressBar = document.getElementById("progressBar");
 const pageLabel = document.getElementById("pageLabel");
-
+const book = document.getElementById("book");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 // =====================================================
-// STATUS FLIPBOOK
+// STATUS FLIPBOOK DINAMIS
 // =====================================================
 
-// Mobile: satu halaman ditampilkan
 let isMobile = window.matchMedia("(max-width: 600px)").matches;
 let mobilePage = 1;
-
-// Desktop: dua halaman ditampilkan sekaligus.
-// 0 adalah halaman kosong sebelum sampul.
 let spreadStart = 0;
-
 let isAnimating = false;
 
-const LAST_SPREAD_START = Math.ceil((TOTAL_PAGES - 1) / 2) * 2;
-
-totalPageText.textContent = TOTAL_PAGES;
+// Master pages array (berisi 22 halaman kurikulum + halaman materi guru)
+let masterPages = [];
 
 // =====================================================
-// KOMPONEN HALAMAN
+// INDEXEDDB STORAGE (PENYIMPANAN GAMBAR & VIDEO LOKAL)
+// =====================================================
+
+const DB_NAME = "NetbookMediaDB";
+const DB_VERSION = 1;
+const STORE_NAME = "mediaBlobs";
+
+function openMediaDB() {
+    return new Promise((resolve) => {
+        if (!window.indexedDB) {
+            resolve(null);
+            return;
+        }
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: "id" });
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
+}
+
+async function saveMediaBlob(id, fileOrBlob) {
+    try {
+        const db = await openMediaDB();
+        if (!db) return null;
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            store.put({ id: id, data: fileOrBlob, timestamp: Date.now() });
+            tx.oncomplete = () => resolve(id);
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (err) {
+        console.error("Gagal menyimpan blob ke IndexedDB:", err);
+        return null;
+    }
+}
+
+async function getMediaBlob(id) {
+    try {
+        const db = await openMediaDB();
+        if (!db) return null;
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get(id);
+            req.onsuccess = () => resolve(req.result ? req.result.data : null);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (err) {
+        return null;
+    }
+}
+
+async function deleteMediaBlob(id) {
+    try {
+        const db = await openMediaDB();
+        if (!db) return;
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            store.delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (err) {}
+}
+
+async function clearAllMediaBlobs() {
+    try {
+        const db = await openMediaDB();
+        if (!db) return;
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            store.clear();
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (err) {}
+}
+
+// =====================================================
+// UTILS & TOAST
+// =====================================================
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function getYouTubeEmbedUrl(url) {
+    if (!url) return "";
+    if (url.includes("/embed/")) return url;
+    let videoId = "";
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+        videoId = match[2];
+        return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return url;
+}
+
+function showToast(message, type = "success") {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    const icon = type === "success" ? "✅" : (type === "error" ? "❌" : "ℹ️");
+    toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 300);
+    }, 3200);
+}
+
+// =====================================================
+// 22 HALAMAN KURIKULUM RESMI (DARI REPO LIVE)
 // =====================================================
 
 function pageFooter(number) {
@@ -139,7 +260,7 @@ function simpleDiagram(items) {
 // HALAMAN 1 - SAMPUL
 // =====================================================
 
-function coverPage() {
+function coverPage(number = 1) {
     return `
         <div class="cover-page">
 
@@ -198,7 +319,7 @@ function coverPage() {
                 </div>
             </div>
 
-            ${pageFooter(1)}
+            ${pageFooter(number)}
         </div>
     `;
 }
@@ -207,9 +328,8 @@ function coverPage() {
 // HALAMAN 2 - TUJUAN PEMBELAJARAN
 // =====================================================
 
-function page2() {
-    return normalPage(
-        2,
+function page2(number = 2) {
+    return normalPage(number,
         "Tujuan Pembelajaran",
         "01 / LEARNING OBJECTIVES",
         `
@@ -240,9 +360,8 @@ function page2() {
 // HALAMAN 3 - PENGERTIAN MEDIA TRANSMISI
 // =====================================================
 
-function page3() {
-    return normalPage(
-        3,
+function page3(number = 3) {
+    return normalPage(number,
         "Pengertian Media Transmisi",
         "02 / PENGENALAN MEDIA JARINGAN",
         `
@@ -279,9 +398,8 @@ function page3() {
 // HALAMAN 4 - FUNGSI MEDIA TRANSMISI
 // =====================================================
 
-function page4() {
-    return normalPage(
-        4,
+function page4(number = 4) {
+    return normalPage(number,
         "Fungsi Media Transmisi",
         "02 / PENGENALAN MEDIA JARINGAN",
         `
@@ -326,9 +444,8 @@ function page4() {
 // HALAMAN 5 - JENIS MEDIA TRANSMISI
 // =====================================================
 
-function page5() {
-    return normalPage(
-        5,
+function page5(number = 5) {
+    return normalPage(number,
         "Jenis Media Transmisi",
         "02 / PENGENALAN MEDIA JARINGAN",
         `
@@ -368,9 +485,8 @@ function page5() {
 // HALAMAN 6 - PENGERTIAN TWISTED PAIR
 // =====================================================
 
-function page6() {
-    return normalPage(
-        6,
+function page6(number = 6) {
+    return normalPage(number,
         "Kabel Twisted Pair",
         "03 / MEDIA TRANSMISI KABEL",
         `
@@ -408,9 +524,8 @@ function page6() {
 // HALAMAN 7 - JENIS TWISTED PAIR
 // =====================================================
 
-function page7() {
-    return normalPage(
-        7,
+function page7(number = 7) {
+    return normalPage(number,
         "Jenis Kabel Twisted Pair",
         "03 / MEDIA TRANSMISI KABEL",
         `
@@ -448,9 +563,8 @@ function page7() {
 // HALAMAN 8 - KABEL KOAKSIAL
 // =====================================================
 
-function page8() {
-    return normalPage(
-        8,
+function page8(number = 8) {
+    return normalPage(number,
         "Kabel Koaksial",
         "03 / MEDIA TRANSMISI KABEL",
         `
@@ -488,9 +602,8 @@ function page8() {
 // HALAMAN 9 - PENGERTIAN FIBER OPTIK
 // =====================================================
 
-function page9() {
-    return normalPage(
-        9,
+function page9(number = 9) {
+    return normalPage(number,
         "Pengertian Fiber Optik",
         "04 / MEDIA TRANSMISI FIBER OPTIK",
         `
@@ -529,9 +642,8 @@ function page9() {
 // HALAMAN 10 - STRUKTUR FIBER OPTIK
 // =====================================================
 
-function page10() {
-    return normalPage(
-        10,
+function page10(number = 10) {
+    return normalPage(number,
         "Struktur Fiber Optik",
         "04 / MEDIA TRANSMISI FIBER OPTIK",
         `
@@ -576,9 +688,8 @@ function page10() {
 // HALAMAN 11 - KELEBIHAN DAN KEKURANGAN FIBER OPTIK
 // =====================================================
 
-function page11() {
-    return normalPage(
-        11,
+function page11(number = 11) {
+    return normalPage(number,
         "Kelebihan dan Kekurangan Fiber Optik",
         "04 / MEDIA TRANSMISI FIBER OPTIK",
         `
@@ -622,9 +733,8 @@ function page11() {
 // HALAMAN 12 - PENGERTIAN MEDIA NIRKABEL
 // =====================================================
 
-function page12() {
-    return normalPage(
-        12,
+function page12(number = 12) {
+    return normalPage(number,
         "Media Transmisi Nirkabel",
         "05 / MEDIA TRANSMISI NIRKABEL",
         `
@@ -661,9 +771,8 @@ function page12() {
 // HALAMAN 13 - JENIS MEDIA NIRKABEL
 // =====================================================
 
-function page13() {
-    return normalPage(
-        13,
+function page13(number = 13) {
+    return normalPage(number,
         "Jenis Media Nirkabel",
         "05 / MEDIA TRANSMISI NIRKABEL",
         `
@@ -708,9 +817,8 @@ function page13() {
 // HALAMAN 14 - WI-FI DAN PENERAPANNYA
 // =====================================================
 
-function page14() {
-    return normalPage(
-        14,
+function page14(number = 14) {
+    return normalPage(number,
         "Wi-Fi dalam Jaringan Komputer",
         "05 / MEDIA TRANSMISI NIRKABEL",
         `
@@ -747,9 +855,8 @@ function page14() {
 // HALAMAN 15 - PERBANDINGAN MEDIA TRANSMISI
 // =====================================================
 
-function page15() {
-    return normalPage(
-        15,
+function page15(number = 15) {
+    return normalPage(number,
         "Perbandingan Media Transmisi",
         "06 / ANALISIS MEDIA TRANSMISI",
         `
@@ -799,9 +906,8 @@ function page15() {
 // HALAMAN 16 - KELEBIHAN DAN KEKURANGAN MEDIA
 // =====================================================
 
-function page16() {
-    return normalPage(
-        16,
+function page16(number = 16) {
+    return normalPage(number,
         "Kelebihan dan Kekurangan Media",
         "06 / ANALISIS MEDIA TRANSMISI",
         `
@@ -840,9 +946,8 @@ function page16() {
 // HALAMAN 17 - MEMILIH MEDIA TRANSMISI
 // =====================================================
 
-function page17() {
-    return normalPage(
-        17,
+function page17(number = 17) {
+    return normalPage(number,
         "Memilih Media yang Tepat",
         "06 / ANALISIS MEDIA TRANSMISI",
         `
@@ -891,9 +996,8 @@ function page17() {
 // HALAMAN 18 - PENERAPAN DI SEKOLAH
 // =====================================================
 
-function page18() {
-    return normalPage(
-        18,
+function page18(number = 18) {
+    return normalPage(number,
         "Penerapan di Lingkungan Sekolah",
         "07 / PENERAPAN MEDIA JARINGAN",
         `
@@ -938,9 +1042,8 @@ function page18() {
 // HALAMAN 19 - PENERAPAN DI RUMAH DAN KANTOR
 // =====================================================
 
-function page19() {
-    return normalPage(
-        19,
+function page19(number = 19) {
+    return normalPage(number,
         "Penerapan di Rumah dan Kantor",
         "07 / PENERAPAN MEDIA JARINGAN",
         `
@@ -990,9 +1093,8 @@ function page19() {
 // HALAMAN 20 - STUDI KASUS SEDERHANA
 // =====================================================
 
-function page20() {
-    return normalPage(
-        20,
+function page20(number = 20) {
+    return normalPage(number,
         "Studi Kasus Pemilihan Media",
         "07 / PENERAPAN MEDIA JARINGAN",
         `
@@ -1032,9 +1134,8 @@ function page20() {
 // HALAMAN 21 - RANGKUMAN
 // =====================================================
 
-function page21() {
-    return normalPage(
-        21,
+function page21(number = 21) {
+    return normalPage(number,
         "Rangkuman Materi",
         "08 / RINGKASAN PEMBELAJARAN",
         `
@@ -1088,7 +1189,7 @@ function page21() {
 // HALAMAN 22 - EVALUASI WAYGROUND
 // =====================================================
 
-function page22() {
+function page22(number = 22) {
     return `
         <div class="quiz-page">
             <div class="quiz-label">09 / EVALUASI PEMBELAJARAN</div>
@@ -1119,55 +1220,238 @@ function page22() {
                 Klik tombol di atas untuk membuka latihan evaluasi.
             </div>
 
-            ${pageFooter(22)}
+            ${pageFooter(number)}
         </div>
     `;
 }
 
 // =====================================================
-// MENAMPILKAN HALAMAN
+
+
+// =====================================================
+// TEMPLATE HALAMAN KUSTOM GURU (TEKS, GAMBAR, VIDEO)
 // =====================================================
 
-function renderPage(number) {
-    const pageFunctions = {
-        1: coverPage,
-        2: page2,
-        3: page3,
-        4: page4,
-        5: page5,
-        6: page6,
-        7: page7,
-        8: page8,
-        9: page9,
-        10: page10,
-        11: page11,
-        12: page12,
-        13: page13,
-        14: page14,
-        15: page15,
-        16: page16,
-        17: page17,
-        18: page18,
-        19: page19,
-        20: page20,
-        21: page21,
-        22: page22
-    };
+function renderCustomPage(pageData, number) {
+    let contentHtml = "";
 
-    if (number === 0 || number > TOTAL_PAGES) {
-        return "";
+    // Deskripsi utama
+    if (pageData.description) {
+        contentHtml += `<p class="page-description">${escapeHtml(pageData.description).replace(/\n/g, '<br>')}</p>`;
     }
 
-    return pageFunctions[number] ? pageFunctions[number]() : "";
+    // Media Gambar
+    if (pageData.materialType === "image" && pageData.resolvedMediaSrc) {
+        contentHtml += `
+            <div class="custom-page-media-container custom-img-container">
+                <img src="${pageData.resolvedMediaSrc}" alt="${escapeHtml(pageData.title)}" class="custom-page-img" />
+                ${pageData.mediaCaption ? `<div class="custom-media-caption">${escapeHtml(pageData.mediaCaption)}</div>` : ""}
+            </div>
+        `;
+    }
+    // Media Video
+    else if (pageData.materialType === "video" && (pageData.resolvedMediaSrc || pageData.videoUrl)) {
+        if (pageData.videoSource === "youtube") {
+            const embedUrl = getYouTubeEmbedUrl(pageData.videoUrl || pageData.resolvedMediaSrc);
+            contentHtml += `
+                <div class="custom-page-media-container custom-video-container">
+                    <iframe src="${embedUrl}" title="${escapeHtml(pageData.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    ${pageData.mediaCaption ? `<div class="custom-media-caption">${escapeHtml(pageData.mediaCaption)}</div>` : ""}
+                </div>
+            `;
+        } else {
+            contentHtml += `
+                <div class="custom-page-media-container custom-video-container">
+                    <video controls playsinline preload="metadata" src="${pageData.resolvedMediaSrc}">
+                        Browser Anda tidak mendukung pemutar video.
+                    </video>
+                    ${pageData.mediaCaption ? `<div class="custom-media-caption">${escapeHtml(pageData.mediaCaption)}</div>` : ""}
+                </div>
+            `;
+        }
+    }
+
+    // Poin-poin checklist
+    if (pageData.bullets && pageData.bullets.length > 0) {
+        contentHtml += `<ul class="content-list custom-content-list">`;
+        pageData.bullets.forEach((point, idx) => {
+            const numStr = (idx + 1) < 10 ? '0' + (idx + 1) : (idx + 1);
+            contentHtml += `
+                <li>
+                    <span class="check">${numStr}</span>
+                    <span>${escapeHtml(point)}</span>
+                </li>
+            `;
+        });
+        contentHtml += `</ul>`;
+    }
+
+    // Info Box / Catatan Guru
+    if (pageData.infoBox && pageData.infoBox.trim() !== "") {
+        contentHtml += `
+            <div class="info-box custom-info-box">
+                <strong>CATATAN GURU</strong>
+                ${escapeHtml(pageData.infoBox).replace(/\n/g, '<br>')}
+            </div>
+        `;
+    }
+
+    return `
+        <div class="custom-page-wrapper">
+            <div class="custom-page-scroll">
+                <div class="page-kicker">${escapeHtml(pageData.kicker || "MATERI TAMBAHAN")}</div>
+                <h2 class="page-title">${escapeHtml(pageData.title || "Materi Baru")}</h2>
+                ${contentHtml}
+            </div>
+            ${pageFooter(number)}
+        </div>
+    `;
 }
 
 // =====================================================
-// LINK WAYGROUND
+// DAFTAR METADATA 22 HALAMAN KURIKULUM RESMI
+// =====================================================
+
+function getDefaultPagesMeta() {
+    return [
+        { id: "default_1", defaultNum: 1, title: "Sampul Pembelajaran", kicker: "NETBOOK / 01", isDefault: true, render: (n) => coverPage(n) },
+        { id: "default_2", defaultNum: 2, title: "Tujuan Pembelajaran", kicker: "01 / LEARNING OBJECTIVES", isDefault: true, render: (n) => page2(n) },
+        { id: "default_3", defaultNum: 3, title: "Pengertian Media Transmisi", kicker: "02 / PENGENALAN MEDIA JARINGAN", isDefault: true, render: (n) => page3(n) },
+        { id: "default_4", defaultNum: 4, title: "Fungsi Media Transmisi", kicker: "02 / PENGENALAN MEDIA JARINGAN", isDefault: true, render: (n) => page4(n) },
+        { id: "default_5", defaultNum: 5, title: "Jenis Media Transmisi", kicker: "02 / PENGENALAN MEDIA JARINGAN", isDefault: true, render: (n) => page5(n) },
+        { id: "default_6", defaultNum: 6, title: "Kabel Twisted Pair", kicker: "03 / MEDIA TRANSMISI KABEL", isDefault: true, render: (n) => page6(n) },
+        { id: "default_7", defaultNum: 7, title: "Jenis Kabel Twisted Pair", kicker: "03 / MEDIA TRANSMISI KABEL", isDefault: true, render: (n) => page7(n) },
+        { id: "default_8", defaultNum: 8, title: "Kabel Koaksial", kicker: "03 / MEDIA TRANSMISI KABEL", isDefault: true, render: (n) => page8(n) },
+        { id: "default_9", defaultNum: 9, title: "Pengertian Fiber Optik", kicker: "04 / MEDIA TRANSMISI FIBER OPTIK", isDefault: true, render: (n) => page9(n) },
+        { id: "default_10", defaultNum: 10, title: "Struktur Fiber Optik", kicker: "04 / MEDIA TRANSMISI FIBER OPTIK", isDefault: true, render: (n) => page10(n) },
+        { id: "default_11", defaultNum: 11, title: "Kelebihan & Kekurangan Fiber Optik", kicker: "04 / MEDIA TRANSMISI FIBER OPTIK", isDefault: true, render: (n) => page11(n) },
+        { id: "default_12", defaultNum: 12, title: "Media Transmisi Nirkabel", kicker: "05 / MEDIA TRANSMISI NIRKABEL", isDefault: true, render: (n) => page12(n) },
+        { id: "default_13", defaultNum: 13, title: "Jenis Media Nirkabel", kicker: "05 / MEDIA TRANSMISI NIRKABEL", isDefault: true, render: (n) => page13(n) },
+        { id: "default_14", defaultNum: 14, title: "Wi-Fi dalam Jaringan Komputer", kicker: "05 / MEDIA TRANSMISI NIRKABEL", isDefault: true, render: (n) => page14(n) },
+        { id: "default_15", defaultNum: 15, title: "Perbandingan Media Transmisi", kicker: "06 / ANALISIS MEDIA TRANSMISI", isDefault: true, render: (n) => page15(n) },
+        { id: "default_16", defaultNum: 16, title: "Kelebihan & Kekurangan Media", kicker: "06 / ANALISIS MEDIA TRANSMISI", isDefault: true, render: (n) => page16(n) },
+        { id: "default_17", defaultNum: 17, title: "Memilih Media yang Tepat", kicker: "06 / ANALISIS MEDIA TRANSMISI", isDefault: true, render: (n) => page17(n) },
+        { id: "default_18", defaultNum: 18, title: "Penerapan di Lingkungan Sekolah", kicker: "07 / PENERAPAN MEDIA JARINGAN", isDefault: true, render: (n) => page18(n) },
+        { id: "default_19", defaultNum: 19, title: "Penerapan di Rumah dan Kantor", kicker: "07 / PENERAPAN MEDIA JARINGAN", isDefault: true, render: (n) => page19(n) },
+        { id: "default_20", defaultNum: 20, title: "Studi Kasus Pemilihan Media", kicker: "07 / PENERAPAN MEDIA JARINGAN", isDefault: true, render: (n) => page20(n) },
+        { id: "default_21", defaultNum: 21, title: "Rangkuman Materi", kicker: "08 / RINGKASAN PEMBELAJARAN", isDefault: true, render: (n) => page21(n) },
+        { id: "default_22", defaultNum: 22, title: "Evaluasi Wayground", kicker: "09 / EVALUASI PEMBELAJARAN", isDefault: true, render: (n) => page22(n) }
+    ];
+}
+
+// =====================================================
+// PENYIMPANAN MATERI GURU
+// =====================================================
+
+function getCustomPagesFromStorage() {
+    try {
+        const data = localStorage.getItem("flipbook_custom_pages");
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveCustomPagesToStorage(pages) {
+    try {
+        localStorage.setItem("flipbook_custom_pages", JSON.stringify(pages));
+    } catch (e) {}
+}
+
+// Membangun masterPages (22 kurikulum + materi tambahan guru)
+async function rebuildMasterPages() {
+    const defaultPages = getDefaultPagesMeta();
+    const customPages = getCustomPagesFromStorage();
+
+    const customResolvedList = [];
+    for (const cp of customPages) {
+        let resolvedUrl = "";
+        if (cp.materialType === "image") {
+            if (cp.imageSource === "url") {
+                resolvedUrl = cp.imageUrl || "";
+            } else if (cp.mediaBlobId) {
+                const blob = await getMediaBlob(cp.mediaBlobId);
+                if (blob) resolvedUrl = URL.createObjectURL(blob);
+            }
+        } else if (cp.materialType === "video") {
+            if (cp.videoSource === "youtube") {
+                resolvedUrl = cp.videoUrl || "";
+            } else if (cp.mediaBlobId) {
+                const blob = await getMediaBlob(cp.mediaBlobId);
+                if (blob) resolvedUrl = URL.createObjectURL(blob);
+            }
+        }
+
+        const pageObj = {
+            id: cp.id,
+            type: "custom",
+            title: cp.title,
+            kicker: cp.kicker,
+            materialType: cp.materialType,
+            description: cp.description,
+            bullets: cp.bullets || [],
+            infoBox: cp.infoBox || "",
+            mediaCaption: cp.mediaCaption || "",
+            videoSource: cp.videoSource,
+            videoUrl: cp.videoUrl,
+            placement: cp.placement || "before_quiz",
+            resolvedMediaSrc: resolvedUrl,
+            rawCustomData: cp,
+            render: (num) => renderCustomPage(pageObj, num)
+        };
+        customResolvedList.push(pageObj);
+    }
+
+    // Susun secara otomatis:
+    // Halaman 1-21 -> Halaman Kustom (before_quiz) -> Halaman 22 (Wayground) -> Halaman Kustom (end)
+    const d1to21 = defaultPages.slice(0, 21);
+    const dWayground = defaultPages[21];
+
+    const customBeforeQuiz = customResolvedList.filter(p => p.placement !== "end");
+    const customAtEnd = customResolvedList.filter(p => p.placement === "end");
+
+    masterPages = [...d1to21, ...customBeforeQuiz, dWayground, ...customAtEnd];
+
+    // Perbarui counter
+    const total = masterPages.length;
+    if (totalPageText) totalPageText.textContent = String(total);
+    const badge = document.getElementById("panelPageBadge");
+    if (badge) badge.textContent = String(total);
+
+    renderPageListTab();
+}
+
+function getTotalPages() {
+    return masterPages.length || 22;
+}
+
+function getLastSpreadStart() {
+    return Math.ceil((getTotalPages() - 1) / 2) * 2;
+}
+
+// =====================================================
+// MERENDER HALAMAN SESUAI NOMOR
+// =====================================================
+
+function renderPage(number) {
+    if (number === 0 || number > getTotalPages()) {
+        return "";
+    }
+
+    const page = masterPages[number - 1];
+    if (page && typeof page.render === "function") {
+        return page.render(number);
+    }
+
+    return "";
+}
+
+// =====================================================
+// PENGATURAN TOMBOL WAYGROUND
 // =====================================================
 
 function setupWayground() {
     const waygroundButton = document.getElementById("waygroundButton");
-
     if (!waygroundButton) return;
 
     const validLink =
@@ -1180,35 +1464,34 @@ function setupWayground() {
         waygroundButton.rel = "noopener noreferrer";
     } else {
         waygroundButton.href = "#";
-
         waygroundButton.onclick = function(event) {
             event.preventDefault();
-            alert(
-                "Link Wayground belum diatur. Masukkan link evaluasi pada variabel waygroundURL di file script.js."
-            );
+            alert("Link Wayground belum diatur pada script.js.");
         };
     }
 }
 
 // =====================================================
-// HALAMAN AKTIF
+// HALAMAN AKTIF & UPDATE DISPLAY
 // =====================================================
 
 function getActivePage() {
     if (isMobile) {
         return mobilePage;
     }
-
     if (spreadStart === 0) {
         return 1;
     }
-
-    return Math.min(TOTAL_PAGES, spreadStart + 1);
+    return Math.min(getTotalPages(), spreadStart + 1);
 }
 
-// =====================================================
-// MEMPERBARUI TAMPILAN
-// =====================================================
+function isLastPage() {
+    const total = getTotalPages();
+    if (isMobile) {
+        return mobilePage >= total;
+    }
+    return spreadStart >= getLastSpreadStart();
+}
 
 function updateDisplay() {
     flipSheet.className = "flip-sheet";
@@ -1225,15 +1508,15 @@ function updateDisplay() {
     }
 
     const activePage = getActivePage();
+    const total = getTotalPages();
 
     currentPageText.textContent = String(activePage).padStart(2, "0");
-    totalPageText.textContent = String(TOTAL_PAGES);
+    totalPageText.textContent = String(total);
 
-    progressBar.style.width =
-        `${(activePage / TOTAL_PAGES) * 100}%`;
+    progressBar.style.width = `${(activePage / total) * 100}%`;
 
     pageLabel.textContent =
-        activePage === TOTAL_PAGES
+        activePage === total
             ? "EVALUASI WAYGROUND"
             : activePage === 1
                 ? "SAMPUL"
@@ -1247,47 +1530,48 @@ function updateDisplay() {
     setupWayground();
 }
 
-// =====================================================
-// CEK HALAMAN TERAKHIR
-// =====================================================
+// Lompat langsung ke halaman yang dipilih di panel
+function goToPage(targetPage) {
+    const total = getTotalPages();
+    targetPage = Math.max(1, Math.min(total, targetPage));
 
-function isLastPage() {
     if (isMobile) {
-        return mobilePage >= TOTAL_PAGES;
+        mobilePage = targetPage;
+    } else {
+        if (targetPage === 1) {
+            spreadStart = 0;
+        } else {
+            spreadStart = Math.ceil((targetPage - 1) / 2) * 2;
+            spreadStart = Math.min(getLastSpreadStart(), spreadStart);
+        }
     }
 
-    return spreadStart >= LAST_SPREAD_START;
+    updateDisplay();
 }
 
 // =====================================================
-// NAVIGASI HALAMAN
+// ANIMASI FLIP BUKU
 // =====================================================
 
 function turnPage(direction) {
     if (isAnimating) return;
 
     if (direction === "next" && isLastPage()) return;
-
     if (
         direction === "prev" &&
         (isMobile ? mobilePage === 1 : spreadStart === 0)
-    ) {
-        return;
-    }
+    ) return;
 
     isAnimating = true;
 
     if (isMobile) {
         const current = mobilePage;
-        const target = direction === "next"
-            ? current + 1
-            : current - 1;
+        const target = direction === "next" ? current + 1 : current - 1;
 
         flipFront.innerHTML = renderPage(current);
         flipBack.innerHTML = renderPage(target);
 
         flipSheet.className = "flip-sheet active";
-
         if (direction === "next") {
             flipSheet.classList.add("turn-next");
         } else {
@@ -1295,30 +1579,25 @@ function turnPage(direction) {
         }
 
         mobilePage = target;
-
     } else {
         if (direction === "next") {
             flipFront.innerHTML = renderPage(spreadStart + 1);
             flipBack.innerHTML = renderPage(spreadStart + 2);
-
             flipSheet.className = "flip-sheet active turn-next";
 
             spreadStart = Math.min(
-                LAST_SPREAD_START,
+                getLastSpreadStart(),
                 spreadStart + 2
             );
-
         } else {
             flipFront.innerHTML = renderPage(spreadStart);
             flipBack.innerHTML = renderPage(spreadStart - 1);
-
             flipSheet.className = "flip-sheet active turn-prev";
 
             spreadStart = Math.max(0, spreadStart - 2);
         }
     }
 
-    // Tampilan utama diperbarui setelah animasi selesai.
     setTimeout(() => {
         updateDisplay();
         isAnimating = false;
@@ -1326,69 +1605,53 @@ function turnPage(direction) {
 }
 
 // =====================================================
-// TOMBOL NAVIGASI
+// EVENT NAVIGASI
 // =====================================================
 
-nextBtn.addEventListener("click", () => {
-    turnPage("next");
-});
-
-prevBtn.addEventListener("click", () => {
-    turnPage("prev");
-});
-
-// =====================================================
-// KEMBALI KE SAMPUL
-// =====================================================
+nextBtn.addEventListener("click", () => turnPage("next"));
+prevBtn.addEventListener("click", () => turnPage("prev"));
 
 coverBtn.addEventListener("click", () => {
     if (isAnimating) return;
-
     mobilePage = 1;
     spreadStart = 0;
-
     updateDisplay();
 });
 
-// =====================================================
-// FULLSCREEN
-// =====================================================
-
-fullscreenBtn.addEventListener("click", async () => {
-    try {
-        if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-        } else {
-            await document.exitFullscreen();
-        }
-    } catch (error) {
-        console.error("Fullscreen tidak tersedia:", error);
-    }
-});
-
-// =====================================================
-// NAVIGASI KEYBOARD
-// =====================================================
-
 document.addEventListener("keydown", (event) => {
+    if (
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.tagName === "SELECT"
+    ) return;
+
     if (event.key === "ArrowRight") {
         turnPage("next");
     }
-
     if (event.key === "ArrowLeft") {
         turnPage("prev");
     }
 });
 
-// =====================================================
-// RESPONSIVE: HP DAN LAPTOP
-// =====================================================
+if (fullscreenBtn) {
+    fullscreenBtn.addEventListener("click", async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        } catch (error) {
+            console.error("Fullscreen tidak tersedia:", error);
+        }
+    });
+}
 
+// Responsive switch
 const mobileQuery = window.matchMedia("(max-width: 600px)");
 
 function handleResponsive() {
     const newMode = mobileQuery.matches;
-
     if (newMode === isMobile) return;
 
     if (isAnimating) {
@@ -1396,23 +1659,15 @@ function handleResponsive() {
         isAnimating = false;
     }
 
+    const total = getTotalPages();
     if (newMode) {
-        // Desktop ke HP.
-        // Tampilkan halaman kanan yang sebelumnya terlihat.
         mobilePage = Math.min(
-            TOTAL_PAGES,
+            total,
             spreadStart === 0 ? 1 : spreadStart + 1
         );
-
     } else {
-        // HP ke desktop.
-        // Sesuaikan ke pasangan halaman terdekat.
         spreadStart = Math.ceil((mobilePage - 1) / 2) * 2;
-
-        spreadStart = Math.min(
-            LAST_SPREAD_START,
-            spreadStart
-        );
+        spreadStart = Math.min(getLastSpreadStart(), spreadStart);
     }
 
     isMobile = newMode;
@@ -1426,23 +1681,662 @@ if (mobileQuery.addEventListener) {
 }
 
 // =====================================================
+// AUTENTIKASI GURU (LOGIN, LOGOUT, GANTI PIN)
+// =====================================================
+
+const DEFAULT_PIN = "guru123";
+
+function getTeacherPin() {
+    return localStorage.getItem("flipbook_teacher_pin") || DEFAULT_PIN;
+}
+
+function setTeacherPin(newPin) {
+    localStorage.setItem("flipbook_teacher_pin", newPin);
+}
+
+function isTeacherSessionActive() {
+    return sessionStorage.getItem("flipbook_teacher_active") === "true";
+}
+
+function setTeacherSessionActive(active) {
+    sessionStorage.setItem("flipbook_teacher_active", active ? "true" : "false");
+    updateTeacherHeaderButton();
+}
+
+function updateTeacherHeaderButton() {
+    const openBtn = document.getElementById("openTeacherPanelBtn");
+    const activeDot = document.getElementById("teacherActiveDot");
+    const lockIcon = document.getElementById("panelLockIcon");
+
+    if (!openBtn) return;
+
+    if (isTeacherSessionActive()) {
+        openBtn.classList.add("active-session");
+        if (activeDot) activeDot.style.display = "inline-block";
+        if (lockIcon) lockIcon.textContent = "🔓";
+    } else {
+        openBtn.classList.remove("active-session");
+        if (activeDot) activeDot.style.display = "none";
+        if (lockIcon) lockIcon.textContent = "🔒";
+    }
+}
+
+// =====================================================
+// MODAL CONTROLLERS (LOGIN & PANEL GURU)
+// =====================================================
+
+const authModal = document.getElementById("teacherAuthModal");
+const panelModal = document.getElementById("teacherPanelModal");
+const openTeacherPanelBtn = document.getElementById("openTeacherPanelBtn");
+const closeAuthModalBtn = document.getElementById("closeAuthModalBtn");
+const closePanelModalBtn = document.getElementById("closePanelModalBtn");
+const logoutTeacherBtn = document.getElementById("logoutTeacherBtn");
+
+const teacherPinInput = document.getElementById("teacherPinInput");
+const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+const submitLoginBtn = document.getElementById("submitLoginBtn");
+const authErrorMsg = document.getElementById("authErrorMsg");
+
+if (openTeacherPanelBtn) {
+    openTeacherPanelBtn.addEventListener("click", () => {
+        if (isTeacherSessionActive()) {
+            openPanel();
+        } else {
+            openAuth();
+        }
+    });
+}
+
+function openAuth() {
+    if (authModal) {
+        authModal.style.display = "flex";
+        if (teacherPinInput) {
+            teacherPinInput.value = "";
+            teacherPinInput.focus();
+        }
+        if (authErrorMsg) authErrorMsg.style.display = "none";
+    }
+}
+
+function closeAuth() {
+    if (authModal) authModal.style.display = "none";
+}
+
+if (closeAuthModalBtn) closeAuthModalBtn.addEventListener("click", closeAuth);
+
+if (togglePasswordBtn && teacherPinInput) {
+    togglePasswordBtn.addEventListener("click", () => {
+        if (teacherPinInput.type === "password") {
+            teacherPinInput.type = "text";
+            togglePasswordBtn.textContent = "🙈";
+        } else {
+            teacherPinInput.type = "password";
+            togglePasswordBtn.textContent = "👁️";
+        }
+    });
+}
+
+function verifyLogin() {
+    const enteredPin = teacherPinInput.value.trim();
+    if (enteredPin === getTeacherPin()) {
+        setTeacherSessionActive(true);
+        closeAuth();
+        openPanel();
+        showToast("Berhasil masuk ke Panel Guru!", "success");
+    } else {
+        if (authErrorMsg) {
+            authErrorMsg.textContent = "PIN salah. Gunakan PIN bawaan: guru123";
+            authErrorMsg.style.display = "block";
+        }
+    }
+}
+
+if (submitLoginBtn) submitLoginBtn.addEventListener("click", verifyLogin);
+if (teacherPinInput) {
+    teacherPinInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            verifyLogin();
+        }
+    });
+}
+
+function openPanel() {
+    if (panelModal) {
+        panelModal.style.display = "flex";
+        renderPageListTab();
+    }
+}
+
+function closePanel() {
+    if (panelModal) panelModal.style.display = "none";
+}
+
+if (closePanelModalBtn) closePanelModalBtn.addEventListener("click", closePanel);
+
+if (logoutTeacherBtn) {
+    logoutTeacherBtn.addEventListener("click", () => {
+        setTeacherSessionActive(false);
+        closePanel();
+        showToast("Sesi guru ditutup.", "info");
+    });
+}
+
+// Tutup modal jika klik backdrop
+[authModal, panelModal].forEach(m => {
+    if (m) {
+        m.addEventListener("click", (e) => {
+            if (e.target === m) m.style.display = "none";
+        });
+    }
+});
+
+// =====================================================
+// PANEL TABS (SEDERHANA: TAMBAH, KELOLA, GANTI PIN)
+// =====================================================
+
+const panelTabs = document.querySelectorAll(".panel-tab-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+
+panelTabs.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const targetTabId = btn.getAttribute("data-tab");
+
+        panelTabs.forEach(b => b.classList.remove("active"));
+        tabContents.forEach(c => {
+            c.classList.remove("active");
+            c.style.display = "none";
+        });
+
+        btn.classList.add("active");
+        const targetContent = document.getElementById(targetTabId);
+        if (targetContent) {
+            targetContent.classList.add("active");
+            targetContent.style.display = "block";
+        }
+
+        if (targetTabId === "navList") {
+            renderPageListTab();
+        }
+    });
+});
+
+// =====================================================
+// FORM PENAMBAHAN MATERI
+// =====================================================
+
+let editingPageId = null;
+let tempImageBlob = null;
+let tempVideoBlob = null;
+
+const materialTypeRadios = document.querySelectorAll("input[name='materialType']");
+const imageSection = document.getElementById("imageInputSection");
+const videoSection = document.getElementById("videoInputSection");
+
+materialTypeRadios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+        document.querySelectorAll(".type-card").forEach(c => c.classList.remove("active"));
+        radio.closest(".type-card").classList.add("active");
+
+        const val = e.target.value;
+        if (val === "image") {
+            imageSection.style.display = "block";
+            videoSection.style.display = "none";
+        } else if (val === "video") {
+            imageSection.style.display = "none";
+            videoSection.style.display = "block";
+        } else {
+            imageSection.style.display = "none";
+            videoSection.style.display = "none";
+        }
+    });
+});
+
+// Gambar: Upload vs URL
+const imageSourceRadios = document.querySelectorAll("input[name='imageSource']");
+const imageUploadWrapper = document.getElementById("imageUploadWrapper");
+const imageUrlWrapper = document.getElementById("imageUrlWrapper");
+
+imageSourceRadios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+        if (e.target.value === "upload") {
+            imageUploadWrapper.style.display = "block";
+            imageUrlWrapper.style.display = "none";
+        } else {
+            imageUploadWrapper.style.display = "none";
+            imageUrlWrapper.style.display = "block";
+        }
+    });
+});
+
+// Video: YouTube vs Upload
+const videoSourceRadios = document.querySelectorAll("input[name='videoSource']");
+const videoYoutubeWrapper = document.getElementById("videoYoutubeWrapper");
+const videoUploadWrapper = document.getElementById("videoUploadWrapper");
+
+videoSourceRadios.forEach(radio => {
+    radio.addEventListener("change", (e) => {
+        if (e.target.value === "youtube") {
+            videoYoutubeWrapper.style.display = "block";
+            videoUploadWrapper.style.display = "none";
+        } else {
+            videoYoutubeWrapper.style.display = "none";
+            videoUploadWrapper.style.display = "block";
+        }
+    });
+});
+
+// Gambar file handler
+const imageFileInput = document.getElementById("imageFileInput");
+const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+const imagePreviewElement = document.getElementById("imagePreviewElement");
+const removeImageBtn = document.getElementById("removeImageBtn");
+
+if (imageFileInput) {
+    imageFileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            tempImageBlob = file;
+            imagePreviewElement.src = URL.createObjectURL(file);
+            imagePreviewContainer.style.display = "flex";
+        }
+    });
+}
+
+if (removeImageBtn) {
+    removeImageBtn.addEventListener("click", () => {
+        tempImageBlob = null;
+        imagePreviewElement.src = "";
+        imagePreviewContainer.style.display = "none";
+        if (imageFileInput) imageFileInput.value = "";
+    });
+}
+
+// Video file handler
+const videoFileInput = document.getElementById("videoFileInput");
+const videoPreviewContainer = document.getElementById("videoPreviewContainer");
+const videoPreviewPlayerArea = document.getElementById("videoPreviewPlayerArea");
+const removeVideoBtn = document.getElementById("removeVideoBtn");
+
+if (videoFileInput) {
+    videoFileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            tempVideoBlob = file;
+            const url = URL.createObjectURL(file);
+            videoPreviewPlayerArea.innerHTML = `<video controls style="max-height:180px; width:100%; border-radius:6px;" src="${url}"></video>`;
+            videoPreviewContainer.style.display = "flex";
+        }
+    });
+}
+
+if (removeVideoBtn) {
+    removeVideoBtn.addEventListener("click", () => {
+        tempVideoBlob = null;
+        videoPreviewPlayerArea.innerHTML = "";
+        videoPreviewContainer.style.display = "none";
+        if (videoFileInput) videoFileInput.value = "";
+    });
+}
+
+// Reset form
+const resetFormBtn = document.getElementById("resetFormBtn");
+if (resetFormBtn) resetFormBtn.addEventListener("click", clearMaterialForm);
+
+function clearMaterialForm() {
+    editingPageId = null;
+    tempImageBlob = null;
+    tempVideoBlob = null;
+
+    document.getElementById("editModeBanner").style.display = "none";
+    document.getElementById("pageTitle").value = "";
+    document.getElementById("pageKicker").value = "04 / MATERI TAMBAHAN";
+    document.getElementById("pageDescription").value = "";
+    document.getElementById("pageBullets").value = "";
+    document.getElementById("pageInfoBox").value = "";
+    document.getElementById("imageCaption").value = "";
+    document.getElementById("imageUrlInput").value = "";
+    document.getElementById("youtubeUrlInput").value = "";
+    document.getElementById("videoCaption").value = "";
+
+    if (imageFileInput) imageFileInput.value = "";
+    if (videoFileInput) videoFileInput.value = "";
+    if (imagePreviewContainer) imagePreviewContainer.style.display = "none";
+    if (videoPreviewContainer) videoPreviewContainer.style.display = "none";
+
+    const textRadio = document.querySelector("input[name='materialType'][value='text']");
+    if (textRadio) {
+        textRadio.checked = true;
+        textRadio.dispatchEvent(new Event("change"));
+    }
+}
+
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+if (cancelEditBtn) cancelEditBtn.addEventListener("click", clearMaterialForm);
+
+// Simpan materi
+const saveMaterialBtn = document.getElementById("saveMaterialBtn");
+if (saveMaterialBtn) saveMaterialBtn.addEventListener("click", saveMaterial);
+
+async function saveMaterial() {
+    const title = document.getElementById("pageTitle").value.trim();
+    const kicker = document.getElementById("pageKicker").value.trim() || "MATERI TAMBAHAN";
+    const description = document.getElementById("pageDescription").value.trim();
+
+    if (!title) {
+        alert("Judul materi wajib diisi!");
+        document.getElementById("pageTitle").focus();
+        return;
+    }
+    if (!description) {
+        alert("Isi materi wajib diisi!");
+        document.getElementById("pageDescription").focus();
+        return;
+    }
+
+    const selectedType = document.querySelector("input[name='materialType']:checked").value;
+    const bulletsRaw = document.getElementById("pageBullets").value.trim();
+    const bullets = bulletsRaw ? bulletsRaw.split("\n").map(s => s.trim()).filter(Boolean) : [];
+    const infoBox = document.getElementById("pageInfoBox").value.trim();
+    const placementVal = document.getElementById("pagePlacement").value || "before_quiz";
+
+    let mediaBlobId = null;
+    let imageUrl = "";
+    let videoUrl = "";
+    let mediaCaption = "";
+    let imageSource = "upload";
+    let videoSource = "youtube";
+
+    if (selectedType === "image") {
+        imageSource = document.querySelector("input[name='imageSource']:checked").value;
+        mediaCaption = document.getElementById("imageCaption").value.trim();
+        if (imageSource === "upload") {
+            if (tempImageBlob) {
+                mediaBlobId = "img_" + Date.now();
+                await saveMediaBlob(mediaBlobId, tempImageBlob);
+            }
+        } else {
+            imageUrl = document.getElementById("imageUrlInput").value.trim();
+        }
+    } else if (selectedType === "video") {
+        videoSource = document.querySelector("input[name='videoSource']:checked").value;
+        mediaCaption = document.getElementById("videoCaption").value.trim();
+        if (videoSource === "youtube") {
+            videoUrl = document.getElementById("youtubeUrlInput").value.trim();
+        } else {
+            if (tempVideoBlob) {
+                mediaBlobId = "vid_" + Date.now();
+                await saveMediaBlob(mediaBlobId, tempVideoBlob);
+            }
+        }
+    }
+
+    const customPages = getCustomPagesFromStorage();
+
+    if (editingPageId) {
+        const idx = customPages.findIndex(p => p.id === editingPageId);
+        if (idx !== -1) {
+            const existing = customPages[idx];
+            existing.title = title;
+            existing.kicker = kicker;
+            existing.description = description;
+            existing.materialType = selectedType;
+            existing.bullets = bullets;
+            existing.infoBox = infoBox;
+            existing.mediaCaption = mediaCaption;
+
+            if (selectedType === "image") {
+                existing.imageSource = imageSource;
+                existing.imageUrl = imageUrl;
+                if (mediaBlobId) existing.mediaBlobId = mediaBlobId;
+            } else if (selectedType === "video") {
+                existing.videoSource = videoSource;
+                existing.videoUrl = videoUrl;
+                if (mediaBlobId) existing.mediaBlobId = mediaBlobId;
+            }
+        }
+        saveCustomPagesToStorage(customPages);
+        showToast("Materi berhasil diperbarui!", "success");
+    } else {
+        const newPage = {
+            id: "page_" + Date.now(),
+            type: "custom",
+            title: title,
+            kicker: kicker,
+            description: description,
+            materialType: selectedType,
+            bullets: bullets,
+            infoBox: infoBox,
+            imageSource: imageSource,
+            imageUrl: imageUrl,
+            videoSource: videoSource,
+            videoUrl: videoUrl,
+            mediaBlobId: mediaBlobId,
+            mediaCaption: mediaCaption,
+            placement: placementVal,
+            createdAt: Date.now()
+        };
+        customPages.push(newPage);
+        saveCustomPagesToStorage(customPages);
+        showToast("Materi baru berhasil ditambahkan!", "success");
+    }
+
+    clearMaterialForm();
+    await rebuildMasterPages();
+    updateDisplay();
+
+    // Buka tab kelola halaman
+    const tabBtnList = document.getElementById("tabBtnList");
+    if (tabBtnList) tabBtnList.click();
+}
+
+// =====================================================
+// TAB 2: DAFTAR SEMUA HALAMAN (KURIKULUM + GURU)
+// =====================================================
+
+function renderPageListTab() {
+    const container = document.getElementById("pageListContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    masterPages.forEach((page, index) => {
+        const pageNum = index + 1;
+        const isDefault = page.type !== "custom";
+
+        let mediaTag = "";
+        if (!isDefault) {
+            if (page.materialType === "image") mediaTag = `<span class="badge-tag tag-media">🖼️ Gambar</span>`;
+            else if (page.materialType === "video") mediaTag = `<span class="badge-tag tag-media">🎬 Video</span>`;
+            else mediaTag = `<span class="badge-tag tag-media">📝 Teks</span>`;
+        } else if (page.id === "default_1") {
+            mediaTag = `<span class="badge-tag curriculum">📘 Sampul</span>`;
+        } else if (page.id === "default_22") {
+            mediaTag = `<span class="badge-tag tag-media">📝 Evaluasi</span>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = `page-list-item ${isDefault ? "" : "is-custom"}`;
+
+        card.innerHTML = `
+            <div class="item-left">
+                <div class="item-num">${pageNum}</div>
+                <div class="item-info">
+                    <div class="item-title">${escapeHtml(page.title || "Halaman " + pageNum)}</div>
+                    <div class="item-meta">
+                        <span class="badge-tag ${isDefault ? "curriculum" : "teacher-material"}">
+                            ${isDefault ? "Kurikulum 22 Halaman" : "Materi Guru"}
+                        </span>
+                        ${mediaTag}
+                    </div>
+                </div>
+            </div>
+            <div class="item-actions">
+                <button type="button" class="item-btn btn-view" title="Buka halaman ini di buku" data-action="view" data-page="${pageNum}">
+                    📖 Buka
+                </button>
+                ${!isDefault ? `
+                    <button type="button" class="item-btn" title="Edit materi ini" data-action="edit" data-id="${page.id}">
+                        ✏️ Edit
+                    </button>
+                    <button type="button" class="item-btn btn-delete" title="Hapus materi ini" data-action="delete" data-id="${page.id}">
+                        🗑️ Hapus
+                    </button>
+                ` : ""}
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    container.querySelectorAll(".item-btn").forEach(btn => {
+        btn.addEventListener("click", handlePageAction);
+    });
+}
+
+async function handlePageAction(e) {
+    const action = e.currentTarget.getAttribute("data-action");
+    const pageNum = parseInt(e.currentTarget.getAttribute("data-page"), 10);
+    const id = e.currentTarget.getAttribute("data-id");
+
+    if (action === "view") {
+        closePanel();
+        goToPage(pageNum);
+    } else if (action === "edit") {
+        editCustomPage(id);
+    } else if (action === "delete") {
+        deleteCustomPage(id);
+    }
+}
+
+function editCustomPage(pageId) {
+    const customPages = getCustomPagesFromStorage();
+    const page = customPages.find(p => p.id === pageId);
+    if (!page) return;
+
+    editingPageId = page.id;
+
+    document.getElementById("editModeBanner").style.display = "flex";
+    document.getElementById("editPageTitlePreview").textContent = page.title;
+
+    document.getElementById("pageTitle").value = page.title || "";
+    document.getElementById("pageKicker").value = page.kicker || "04 / MATERI TAMBAHAN";
+    document.getElementById("pageDescription").value = page.description || "";
+    document.getElementById("pageBullets").value = (page.bullets || []).join("\n");
+    document.getElementById("pageInfoBox").value = page.infoBox || "";
+
+    const typeRadio = document.querySelector(`input[name='materialType'][value='${page.materialType}']`);
+    if (typeRadio) {
+        typeRadio.checked = true;
+        typeRadio.dispatchEvent(new Event("change"));
+    }
+
+    if (page.materialType === "image") {
+        const srcRadio = document.querySelector(`input[name='imageSource'][value='${page.imageSource || "upload"}']`);
+        if (srcRadio) {
+            srcRadio.checked = true;
+            srcRadio.dispatchEvent(new Event("change"));
+        }
+        document.getElementById("imageUrlInput").value = page.imageUrl || "";
+        document.getElementById("imageCaption").value = page.mediaCaption || "";
+    } else if (page.materialType === "video") {
+        const vRadio = document.querySelector(`input[name='videoSource'][value='${page.videoSource || "youtube"}']`);
+        if (vRadio) {
+            vRadio.checked = true;
+            vRadio.dispatchEvent(new Event("change"));
+        }
+        document.getElementById("youtubeUrlInput").value = page.videoUrl || "";
+        document.getElementById("videoCaption").value = page.mediaCaption || "";
+    }
+
+    const tabBtnAdd = document.getElementById("tabBtnAdd");
+    if (tabBtnAdd) tabBtnAdd.click();
+}
+
+async function deleteCustomPage(pageId) {
+    if (!confirm("Hapus materi ini dari flipbook?")) return;
+
+    let customPages = getCustomPagesFromStorage();
+    const target = customPages.find(p => p.id === pageId);
+    if (target && target.mediaBlobId) {
+        await deleteMediaBlob(target.mediaBlobId);
+    }
+
+    customPages = customPages.filter(p => p.id !== pageId);
+    saveCustomPagesToStorage(customPages);
+
+    await rebuildMasterPages();
+    updateDisplay();
+    showToast("Materi berhasil dihapus.", "info");
+}
+
+// =====================================================
+// TAB 3: GANTI PIN GURU & RESET
+// =====================================================
+
+const saveNewPinBtn = document.getElementById("saveNewPinBtn");
+if (saveNewPinBtn) {
+    saveNewPinBtn.addEventListener("click", () => {
+        const oldPin = document.getElementById("oldPinInput").value.trim();
+        const newPin = document.getElementById("newPinInput").value.trim();
+        const confirmPin = document.getElementById("confirmPinInput").value.trim();
+
+        if (oldPin !== getTeacherPin()) {
+            alert("PIN lama Anda tidak cocok!");
+            return;
+        }
+        if (newPin.length < 4) {
+            alert("PIN baru minimal harus 4 karakter!");
+            return;
+        }
+        if (newPin !== confirmPin) {
+            alert("Konfirmasi PIN baru tidak sama!");
+            return;
+        }
+
+        setTeacherPin(newPin);
+        document.getElementById("oldPinInput").value = "";
+        document.getElementById("newPinInput").value = "";
+        document.getElementById("confirmPinInput").value = "";
+
+        showToast("PIN akses guru berhasil diubah!", "success");
+    });
+}
+
+const resetAllMaterialsBtn = document.getElementById("resetAllMaterialsBtn");
+if (resetAllMaterialsBtn) {
+    resetAllMaterialsBtn.addEventListener("click", async () => {
+        if (!confirm("Hapus semua materi tambahan guru dan kembali ke 22 halaman standar?")) {
+            return;
+        }
+
+        localStorage.removeItem("flipbook_custom_pages");
+        await clearAllMediaBlobs();
+
+        await rebuildMasterPages();
+        mobilePage = 1;
+        spreadStart = 0;
+        updateDisplay();
+
+        showToast("Flipbook kembali ke 22 halaman kurikulum awal.", "info");
+    });
+}
+
+// =====================================================
 // INISIALISASI FLIPBOOK
 // =====================================================
 
-function initializeFlipbook() {
+async function initializeFlipbook() {
     isMobile = mobileQuery.matches;
-
     mobilePage = 1;
     spreadStart = 0;
 
+    updateTeacherHeaderButton();
+    await rebuildMasterPages();
     updateDisplay();
 
-    console.log("Flipbook berhasil diinisialisasi.");
-    console.log("Jumlah halaman:", TOTAL_PAGES);
-    console.log(
-        "Mode tampilan:",
-        isMobile ? "Single Page" : "Double Page"
-    );
+    console.log("Flipbook 22 Halaman berhasil diinisialisasi.");
+    console.log("Total Halaman:", getTotalPages());
 }
 
 initializeFlipbook();
