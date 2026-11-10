@@ -5,7 +5,7 @@
 // =====================================================
 
 // LINK EVALUASI WAYGROUND RESMI
-const waygroundURL = "https://wayground.com/join?gc=63289187";
+const waygroundURL = "https://wayground.com/join/quiz/6abb3e414221ae4365d87c0c/start?studentShare=true";
 const ANIMATION_DURATION = 850;
 
 // Elemen HTML Flipbook Utama
